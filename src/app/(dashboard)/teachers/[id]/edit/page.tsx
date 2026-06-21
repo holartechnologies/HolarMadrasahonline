@@ -204,7 +204,7 @@ export default function EditTeacherPage({
 
               <FormField label="Date Employed" error={errors.dateEmployed?.message} required>
                 <Input
-                  {...register("dateEmployed", { valueAsDate: true })}
+                  {...register("dateEmployed", { valueAsDate: false })}
                   type="date"
                 />
               </FormField>

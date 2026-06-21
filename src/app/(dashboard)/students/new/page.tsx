@@ -97,8 +97,8 @@ export default function NewStudentPage() {
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (file) {
-      if (file.size > 500 * 1024) {
-        toast({ title: "Error", description: "Photo must be under 500KB", variant: "destructive" })
+      if (file.size > 80 * 1024) {
+        toast({ title: "Error", description: "Photo must be under 80KB", variant: "destructive" })
         e.target.value = ""
         return
       }

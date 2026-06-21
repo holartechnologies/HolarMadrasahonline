@@ -88,15 +88,18 @@ export default function AttendancePage() {
     try {
       setLoading(true)
       setError(null)
-      const res = await fetch(`/api/attendance?classId=${classId}&date=${date}`)
-      if (!res.ok) throw new Error("Failed to fetch attendance data")
-      const json = await res.json()
-      const { students: studentList, attendanceRecords } = json
+      const [studentsRes, attendanceRes] = await Promise.all([
+        fetch(`/api/students?classId=${classId}`),
+        fetch(`/api/attendance?classId=${classId}&date=${date}`),
+      ])
+      if (!studentsRes.ok) throw new Error("Failed to fetch students")
+      const studentList: Student[] = await studentsRes.json()
+      const attendanceRecords: AttendanceRecord[] = attendanceRes.ok ? await attendanceRes.json() : []
       const existingMap = new Map<string, { status: string; remarks: string }>()
-      for (const rec of attendanceRecords ?? []) {
+      for (const rec of attendanceRecords) {
         existingMap.set(rec.studentId, { status: rec.status, remarks: rec.remarks ?? "" })
       }
-      const merged: StudentAttendance[] = (studentList ?? []).map((s: Student) => {
+      const merged: StudentAttendance[] = studentList.map((s) => {
         const att = existingMap.get(s.id) ?? null
         return { ...s, attendance: att ? { studentId: s.id, status: att.status, remarks: att.remarks } : null }
       })
@@ -123,7 +126,7 @@ export default function AttendancePage() {
       setPrevLoading(true)
       const params = new URLSearchParams({ classId })
       if (prevDateFilter) params.set("date", prevDateFilter)
-      const res = await fetch(`/api/attendance/history?${params}`)
+      const res = await fetch(`/api/attendance?${params}`)
       if (!res.ok) throw new Error("Failed to fetch history")
       const json = await res.json()
       setPreviousRecords(json.records ?? json ?? [])

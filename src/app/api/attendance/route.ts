@@ -61,54 +61,49 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const parsed = attendanceSchema.safeParse(body)
+    const { records } = body
 
-    if (!parsed.success) {
-      return Response.json(
-        { error: "Validation failed", details: parsed.error.flatten() },
-        { status: 400 }
-      )
+    if (!Array.isArray(records) || records.length === 0) {
+      return Response.json({ error: "Records array is required" }, { status: 400 })
     }
 
-    const data = parsed.data
+    const results = []
+    for (const record of records) {
+      const parsed = attendanceSchema.safeParse(record)
+      if (!parsed.success) {
+        return Response.json(
+          { error: "Validation failed", details: parsed.error.flatten() },
+          { status: 400 }
+        )
+      }
 
-    const record = await prisma.attendance.upsert({
-      where: {
-        studentId_classId_date: {
+      const data = parsed.data
+      const result = await prisma.attendance.upsert({
+        where: {
+          studentId_classId_date: {
+            studentId: data.studentId,
+            classId: data.classId,
+            date: new Date(data.date),
+          },
+        },
+        update: {
+          status: data.status,
+          remarks: data.remarks || null,
+          recordedById: session.user?.id,
+        },
+        create: {
           studentId: data.studentId,
           classId: data.classId,
           date: new Date(data.date),
+          status: data.status,
+          remarks: data.remarks || null,
+          recordedById: session.user?.id,
         },
-      },
-      update: {
-        status: data.status,
-        remarks: data.remarks || null,
-        recordedById: session.user?.id,
-      },
-      create: {
-        studentId: data.studentId,
-        classId: data.classId,
-        date: new Date(data.date),
-        status: data.status,
-        remarks: data.remarks || null,
-        recordedById: session.user?.id,
-      },
-      include: {
-        student: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            admissionNumber: true,
-          },
-        },
-        class: {
-          select: { id: true, name: true, code: true },
-        },
-      },
-    })
+      })
+      results.push(result)
+    }
 
-    return Response.json(record, { status: 201 })
+    return Response.json({ records: results }, { status: 201 })
   } catch (error) {
     console.error("Error recording attendance:", error)
     return Response.json({ error: "Internal server error" }, { status: 500 })

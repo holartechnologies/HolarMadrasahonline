@@ -12,6 +12,7 @@ export const studentSchema = z.object({
   otherName: z.string().optional(),
   gender: z.enum(["male", "female"]),
   dateOfBirth: z.string(),
+  passportPhoto: z.string().optional(),
   parentName: z.string().min(1, "Parent name is required"),
   parentPhone: z.string().min(1, "Parent phone is required"),
   parentEmail: z.string().email().optional().or(z.literal("")),

@@ -34,6 +34,7 @@ export default function NewStudentPage() {
   const [classes, setClasses] = useState<ClassOption[]>([])
   const [submitting, setSubmitting] = useState(false)
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [photoBase64, setPhotoBase64] = useState<string | null>(null)
 
   const {
     register,
@@ -70,10 +71,11 @@ export default function NewStudentPage() {
   async function onSubmit(data: StudentInput) {
     try {
       setSubmitting(true)
+      const body = { ...data, passportPhoto: photoBase64 }
       const res = await fetch("/api/students", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(body),
       })
       if (!res.ok) {
         const err = await res.json()
@@ -95,7 +97,15 @@ export default function NewStudentPage() {
   function handlePhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (file) {
+      if (file.size > 500 * 1024) {
+        toast({ title: "Error", description: "Photo must be under 500KB", variant: "destructive" })
+        e.target.value = ""
+        return
+      }
       setPhotoPreview(URL.createObjectURL(file))
+      const reader = new FileReader()
+      reader.onload = () => setPhotoBase64(reader.result as string)
+      reader.readAsDataURL(file)
     }
   }
 

@@ -23,6 +23,7 @@ export interface StudentWithClass {
   otherName: string | null;
   gender: string;
   dateOfBirth: Date;
+  passportPhoto: string | null;
   parentName: string;
   parentPhone: string;
   parentEmail: string | null;

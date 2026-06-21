@@ -99,6 +99,7 @@ export async function PUT(
     if (data.address !== undefined) updateData.address = data.address
     if (data.classId !== undefined) updateData.classId = data.classId || null
     if (data.status !== undefined) updateData.status = data.status
+    if (data.passportPhoto !== undefined) updateData.passportPhoto = data.passportPhoto || null
 
     const student = await prisma.student.update({
       where: { id },

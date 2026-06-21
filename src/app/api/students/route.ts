@@ -86,6 +86,7 @@ export async function POST(req: NextRequest) {
         otherName: data.otherName,
         gender: data.gender,
         dateOfBirth: new Date(data.dateOfBirth),
+        passportPhoto: data.passportPhoto || null,
         parentName: data.parentName,
         parentPhone: data.parentPhone,
         parentEmail: data.parentEmail || null,

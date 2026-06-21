@@ -47,6 +47,7 @@ interface StudentProfile {
   otherName: string | null
   gender: string
   dateOfBirth: string
+  passportPhoto: string | null
   parentName: string
   parentPhone: string
   parentEmail: string | null
@@ -174,9 +175,13 @@ export default function StudentProfilePage() {
           <CardContent className="pt-6">
             <div className="flex flex-col items-center text-center">
               <Avatar className="h-28 w-28 mb-4">
-                <AvatarFallback className="text-3xl bg-primary/10 text-primary">
-                  {initials}
-                </AvatarFallback>
+                {student.passportPhoto ? (
+                  <img src={student.passportPhoto} alt="Photo" className="w-full h-full object-cover" />
+                ) : (
+                  <AvatarFallback className="text-3xl bg-primary/10 text-primary">
+                    {initials}
+                  </AvatarFallback>
+                )}
               </Avatar>
               <h2 className="text-xl font-bold">{student.firstName} {student.lastName}</h2>
               {student.otherName && (

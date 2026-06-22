@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useSession } from "next-auth/react"
@@ -54,6 +55,17 @@ export function Sidebar({ className, open, onClose }: SidebarProps) {
   const pathname = usePathname()
   const { data: session } = useSession()
   const userRole = session?.user?.role ?? ""
+  const [schoolName, setSchoolName] = useState("Ihya'us Sunnah")
+
+  useEffect(() => {
+    fetch("/api/settings").then(async (res) => {
+      if (!res.ok) return
+      const data: { key: string; value: string }[] = await res.json()
+      const map = new Map(data.map((s) => [s.key, s.value]))
+      const name = map.get("school_name")
+      if (name) setSchoolName(name)
+    }).catch(() => {})
+  }, [])
 
   const visibleItems = navItems.filter((item) => item.roles.includes(userRole))
 
@@ -75,7 +87,7 @@ export function Sidebar({ className, open, onClose }: SidebarProps) {
               إحياء السنة
             </h1>
             <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#7ec8e3]">
-              Ihya&apos;us Sunnah
+              {schoolName}
             </p>
           </div>
         </div>

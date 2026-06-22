@@ -3,6 +3,20 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { calculateGrade } from "@/lib/utils"
 
+async function getMaxScores() {
+  const settings = await prisma.systemSettings.findMany({
+    where: { key: { in: ["exam.test1Max", "exam.test2Max", "exam.assignmentMax", "exam.examinationMax", "grading_scale"] } },
+  })
+  const map = new Map(settings.map((s) => [s.key, s.value]))
+  return {
+    test1: parseInt(map.get("exam.test1Max") ?? "10"),
+    test2: parseInt(map.get("exam.test2Max") ?? "10"),
+    assignment: parseInt(map.get("exam.assignmentMax") ?? "10"),
+    examination: parseInt(map.get("exam.examinationMax") ?? "70"),
+    gradeScale: map.get("grading_scale") ? (JSON.parse(map.get("grading_scale")!) as { grade: string; minPercent: number; maxPercent: number }[]) : undefined,
+  }
+}
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -74,6 +88,8 @@ export async function PUT(
     const body = await req.json()
 
     if (body.results && Array.isArray(body.results)) {
+      const maxScores = await getMaxScores()
+      const maxTotal = maxScores.test1 + maxScores.test2 + maxScores.assignment + maxScores.examination
       const resultsData = body.results.map(
         (result: {
           id?: string
@@ -91,7 +107,7 @@ export async function PUT(
           const assignment = result.assignment ?? 0
           const examination = result.examination ?? 0
           const total = test1 + test2 + assignment + examination
-          const grade = calculateGrade(total)
+          const grade = calculateGrade(total, maxTotal, maxScores.gradeScale)
 
           return {
             examId: id,

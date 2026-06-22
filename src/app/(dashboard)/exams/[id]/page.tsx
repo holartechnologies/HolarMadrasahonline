@@ -91,6 +91,26 @@ export default function ExamResultsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [maxScores, setMaxScores] = useState({ test1: 10, test2: 10, assignment: 10, examination: 70 })
+  const [gradeScale, setGradeScale] = useState<{ grade: string; minPercent: number; maxPercent: number }[] | undefined>()
+
+  useEffect(() => {
+    fetch("/api/settings").then(async (res) => {
+      if (!res.ok) return
+      const data: { key: string; value: string }[] = await res.json()
+      const map = new Map(data.map((s) => [s.key, s.value]))
+      setMaxScores({
+        test1: parseInt(map.get("exam.test1Max") ?? "10"),
+        test2: parseInt(map.get("exam.test2Max") ?? "10"),
+        assignment: parseInt(map.get("exam.assignmentMax") ?? "10"),
+        examination: parseInt(map.get("exam.examinationMax") ?? "70"),
+      })
+      const scaleRaw = map.get("grading_scale")
+      if (scaleRaw) {
+        try { setGradeScale(JSON.parse(scaleRaw)) } catch { /* use default */ }
+      }
+    }).catch(() => {})
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -194,6 +214,8 @@ export default function ExamResultsPage() {
     return students.find((s) => s.id === studentId)?.admissionNumber ?? "-"
   }
 
+  const maxTotal = maxScores.test1 + maxScores.test2 + maxScores.assignment + maxScores.examination
+
   const handleScoreChange = (
     resultIndex: number,
     field: "test1" | "test2" | "assignment" | "examination" | "remarks",
@@ -214,10 +236,11 @@ export default function ExamResultsPage() {
       } else {
         const numVal = parseFloat(value)
         if (isNaN(numVal)) return prev
-        if (numVal < 0 || numVal > (field === "examination" ? 70 : 10)) return prev
+        const fieldMax = maxScores[field]
+        if (numVal < 0 || numVal > fieldMax) return prev
         r[field] = numVal
         r.total = r.test1 + r.test2 + r.assignment + r.examination
-        r.grade = calculateGrade(r.total)
+        r.grade = calculateGrade(r.total, maxTotal, gradeScale)
       }
 
       next[globalIdx] = r
@@ -227,11 +250,14 @@ export default function ExamResultsPage() {
 
   const handleCalculateGrades = () => {
     setResults((prev) =>
-      prev.map((r) => ({
-        ...r,
-        total: r.test1 + r.test2 + r.assignment + r.examination,
-        grade: calculateGrade(r.test1 + r.test2 + r.assignment + r.examination),
-      }))
+      prev.map((r) => {
+        const total = r.test1 + r.test2 + r.assignment + r.examination
+        return {
+          ...r,
+          total,
+          grade: calculateGrade(total, maxTotal, gradeScale),
+        }
+      })
     )
     toast({ title: "Success", description: "Grades calculated successfully" })
   }
@@ -430,10 +456,10 @@ export default function ExamResultsPage() {
                     <TableHead className="w-10">S/N</TableHead>
                     <TableHead>Student Name</TableHead>
                     <TableHead>Admission No</TableHead>
-                    <TableHead className="w-20 text-center">Test 1 (10)</TableHead>
-                    <TableHead className="w-20 text-center">Test 2 (10)</TableHead>
-                    <TableHead className="w-24 text-center">Assignment (10)</TableHead>
-                    <TableHead className="w-20 text-center">Exam (70)</TableHead>
+                    <TableHead className="w-20 text-center">Test 1 ({maxScores.test1})</TableHead>
+                    <TableHead className="w-20 text-center">Test 2 ({maxScores.test2})</TableHead>
+                    <TableHead className="w-24 text-center">Assignment ({maxScores.assignment})</TableHead>
+                    <TableHead className="w-20 text-center">Exam ({maxScores.examination})</TableHead>
                     <TableHead className="w-16 text-center">Total</TableHead>
                     <TableHead className="w-14 text-center">Grade</TableHead>
                     <TableHead className="w-14 text-center">Pos</TableHead>
@@ -452,7 +478,7 @@ export default function ExamResultsPage() {
                         <Input
                           type="number"
                           min={0}
-                          max={10}
+                          max={maxScores.test1}
                           step={0.5}
                           value={result.test1}
                           onChange={(e) => handleScoreChange(index, "test1", e.target.value)}
@@ -464,7 +490,7 @@ export default function ExamResultsPage() {
                         <Input
                           type="number"
                           min={0}
-                          max={10}
+                          max={maxScores.test2}
                           step={0.5}
                           value={result.test2}
                           onChange={(e) => handleScoreChange(index, "test2", e.target.value)}
@@ -476,7 +502,7 @@ export default function ExamResultsPage() {
                         <Input
                           type="number"
                           min={0}
-                          max={10}
+                          max={maxScores.assignment}
                           step={0.5}
                           value={result.assignment}
                           onChange={(e) => handleScoreChange(index, "assignment", e.target.value)}
@@ -488,7 +514,7 @@ export default function ExamResultsPage() {
                         <Input
                           type="number"
                           min={0}
-                          max={70}
+                          max={maxScores.examination}
                           step={0.5}
                           value={result.examination}
                           onChange={(e) => handleScoreChange(index, "examination", e.target.value)}

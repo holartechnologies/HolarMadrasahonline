@@ -182,6 +182,36 @@ async function main() {
   }
   console.log("  ✓ Fee structure created");
 
+  // ─── Academic Years (Gregorian + Hijri) ──────────────────────────────────
+  const academicYearsData = [
+    { gregorianStart: 2022, gregorianEnd: 2023, hijriStart: 1443, hijriEnd: 1444, isCurrent: false },
+    { gregorianStart: 2023, gregorianEnd: 2024, hijriStart: 1444, hijriEnd: 1445, isCurrent: false },
+    { gregorianStart: 2024, gregorianEnd: 2025, hijriStart: 1445, hijriEnd: 1446, isCurrent: false },
+    { gregorianStart: 2025, gregorianEnd: 2026, hijriStart: 1446, hijriEnd: 1447, isCurrent: true },
+    { gregorianStart: 2026, gregorianEnd: 2027, hijriStart: 1447, hijriEnd: 1448, isCurrent: false },
+    { gregorianStart: 2027, gregorianEnd: 2028, hijriStart: 1448, hijriEnd: 1449, isCurrent: false },
+    { gregorianStart: 2028, gregorianEnd: 2029, hijriStart: 1449, hijriEnd: 1450, isCurrent: false },
+    { gregorianStart: 2029, gregorianEnd: 2030, hijriStart: 1450, hijriEnd: 1451, isCurrent: false },
+  ];
+
+  const academicYearIds = [];
+  for (const data of academicYearsData) {
+    const existing = await prisma.academicYear.findFirst({
+      where: { gregorianStart: data.gregorianStart, gregorianEnd: data.gregorianEnd },
+    });
+    if (existing) {
+      await prisma.academicYear.update({
+        where: { id: existing.id },
+        data,
+      });
+      academicYearIds.push(existing.id);
+    } else {
+      const year = await prisma.academicYear.create({ data });
+      academicYearIds.push(year.id);
+    }
+  }
+  console.log("  ✓ Academic years created");
+
   // ─── System Settings ───────────────────────────────────────────────────
   const settingsData = [
     { key: "school_name", value: "Ihya'us Sunnah Islamic School" },
@@ -191,6 +221,18 @@ async function main() {
     { key: "school_motto", value: "Reviving the Sunnah through Knowledge and Action" },
     { key: "current_academic_year", value: "2025/2026" },
     { key: "current_term", value: "1st Term" },
+    { key: "exam.test1Max", value: "10", description: "Maximum marks for Test 1" },
+    { key: "exam.test2Max", value: "10", description: "Maximum marks for Test 2" },
+    { key: "exam.assignmentMax", value: "10", description: "Maximum marks for Assignment" },
+    { key: "exam.examinationMax", value: "70", description: "Maximum marks for Examination" },
+    { key: "grading_scale", value: JSON.stringify([
+      { grade: "A", minPercent: 70, maxPercent: 100, remark: "Excellent" },
+      { grade: "B", minPercent: 60, maxPercent: 69, remark: "Very Good" },
+      { grade: "C", minPercent: 50, maxPercent: 59, remark: "Good" },
+      { grade: "D", minPercent: 45, maxPercent: 49, remark: "Fair" },
+      { grade: "E", minPercent: 40, maxPercent: 44, remark: "Pass" },
+      { grade: "F", minPercent: 0, maxPercent: 39, remark: "Fail" },
+    ]), description: "Grading scale with percentage ranges and remarks" },
   ];
 
   for (const data of settingsData) {

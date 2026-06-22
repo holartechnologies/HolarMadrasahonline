@@ -163,7 +163,18 @@ export function Navbar({ className, onMenuToggle }: NavbarProps) {
     localStorage.setItem("darkMode", String(isDark))
   }
 
+  const [schoolName, setSchoolName] = useState("Ihya'us Sunnah")
   const initials = user?.name ? getInitials(user.name) : "U"
+
+  useEffect(() => {
+    fetch("/api/settings").then(async (res) => {
+      if (!res.ok) return
+      const data: { key: string; value: string }[] = await res.json()
+      const map = new Map(data.map((s) => [s.key, s.value]))
+      const name = map.get("school_name")
+      if (name) setSchoolName(name)
+    }).catch(() => {})
+  }, [])
 
   return (
     <header
@@ -185,7 +196,7 @@ export function Navbar({ className, onMenuToggle }: NavbarProps) {
           <span className="text-xs font-bold text-white dark:text-[#1e3a5f]">إ</span>
         </div>
         <span className="text-sm font-semibold text-[#1e3a5f] dark:text-white">
-          Ihya&apos;us Sunnah
+          {schoolName}
         </span>
       </div>
 

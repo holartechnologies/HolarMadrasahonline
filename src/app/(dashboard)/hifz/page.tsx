@@ -356,7 +356,7 @@ export default function HifzPage() {
           title="No Hifz Records Yet"
           description="Start tracking Quran memorization by adding your first hifz record."
           actionLabel="Add Record"
-          actionHref="#"
+          onAction={openAddDialog}
         />
       ) : (
         <Card>

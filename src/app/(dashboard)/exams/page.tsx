@@ -12,7 +12,7 @@ import { PageLoading } from "@/components/shared/loading"
 import { EmptyState } from "@/components/shared/empty-state"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { ColumnDef } from "@tanstack/react-table"
-import { Plus, Eye, Trash2, ToggleLeft, ToggleRight, FileText } from "lucide-react"
+import { Plus, Eye, Trash2, ToggleLeft, ToggleRight, FileText, Pencil } from "lucide-react"
 
 interface Exam {
   id: string
@@ -28,6 +28,7 @@ export default function ExamsPage() {
   const { toast } = useToast()
   const [exams, setExams] = useState<Exam[]>([])
   const [loading, setLoading] = useState(true)
+  const [publishingId, setPublishingId] = useState<string | null>(null)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
 
@@ -53,6 +54,7 @@ export default function ExamsPage() {
   }, [toast])
 
   const handleTogglePublish = async (exam: Exam) => {
+    setPublishingId(exam.id)
     try {
       const res = await fetch(`/api/exams/${exam.id}`, {
         method: "PATCH",
@@ -64,6 +66,8 @@ export default function ExamsPage() {
       setExams((prev) => prev.map((e) => (e.id === exam.id ? { ...e, isPublished: !e.isPublished } : e)))
     } catch {
       toast({ title: "Error", description: "Failed to toggle publish status", variant: "destructive" })
+    } finally {
+      setPublishingId(null)
     }
   }
 
@@ -130,8 +134,19 @@ export default function ExamsPage() {
                 <Eye className="h-4 w-4" />
               </Link>
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => handleTogglePublish(exam)}>
-              {exam.isPublished ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
+            <Button variant="ghost" size="icon" asChild>
+              <Link href={`/exams/${exam.id}/edit`}>
+                <Pencil className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button variant="ghost" size="icon" disabled={publishingId === exam.id} onClick={() => handleTogglePublish(exam)}>
+              {publishingId === exam.id ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              ) : exam.isPublished ? (
+                <ToggleRight className="h-4 w-4" />
+              ) : (
+                <ToggleLeft className="h-4 w-4" />
+              )}
             </Button>
             <Button variant="ghost" size="icon" onClick={() => setDeleteId(exam.id)}>
               <Trash2 className="h-4 w-4 text-destructive" />

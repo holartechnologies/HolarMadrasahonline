@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useToast } from "@/components/ui/toaster"
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PageHeader } from "@/components/shared/page-header"
+import { PageLoading } from "@/components/shared/loading"
 import { FormField } from "@/components/shared/form-field"
 import { examSchema, type ExamInput } from "@/schemas"
 import { ArrowLeft, Save } from "lucide-react"
@@ -29,52 +30,80 @@ const TERMS = [
   { value: "3rd Term", label: "3rd Term" },
 ]
 
-export default function NewExamPage() {
+export default function EditExamPage() {
+  const params = useParams()
   const router = useRouter()
   const { toast } = useToast()
   const [submitting, setSubmitting] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [academicYears, setAcademicYears] = useState<AcademicYearOption[]>([])
-
-  useEffect(() => {
-    fetch("/api/academic-years")
-      .then((res) => res.json())
-      .then((data) => setAcademicYears(data))
-      .catch(() => {})
-  }, [])
 
   const {
     register,
     handleSubmit,
     setValue,
     watch,
+    reset,
     formState: { errors },
   } = useForm<ExamInput>({
     resolver: zodResolver(examSchema),
     defaultValues: {
+      title: "",
       term: "",
       academicYear: "",
+      startDate: "",
+      endDate: "",
     },
   })
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [examRes, yearsRes] = await Promise.all([
+          fetch(`/api/exams/${params.id}`),
+          fetch("/api/academic-years"),
+        ])
+        if (!examRes.ok) throw new Error("Failed to load exam")
+        const exam = await examRes.json()
+        reset({
+          title: exam.title ?? "",
+          term: exam.term ?? "",
+          academicYear: exam.academicYear ?? "",
+          startDate: exam.startDate ? exam.startDate.split("T")[0] : "",
+          endDate: exam.endDate ? exam.endDate.split("T")[0] : "",
+        })
+        if (yearsRes.ok) {
+          setAcademicYears(await yearsRes.json())
+        }
+      } catch {
+        toast({ title: "Error", description: "Failed to load exam", variant: "destructive" })
+        router.push("/exams")
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [params.id, reset, toast, router])
 
   const onSubmit = async (data: ExamInput) => {
     try {
       setSubmitting(true)
-      const res = await fetch("/api/exams", {
-        method: "POST",
+      const res = await fetch(`/api/exams/${params.id}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       })
       if (!res.ok) {
         const err = await res.json().catch(() => null)
-        throw new Error(err?.message || "Failed to create exam")
+        throw new Error(err?.message || "Failed to update exam")
       }
-      toast({ title: "Success", description: "Exam created successfully" })
+      toast({ title: "Success", description: "Exam updated successfully" })
       router.push("/exams")
       router.refresh()
     } catch (err) {
       toast({
         title: "Error",
-        description: err instanceof Error ? err.message : "Failed to create exam",
+        description: err instanceof Error ? err.message : "Failed to update exam",
         variant: "destructive",
       })
     } finally {
@@ -82,9 +111,11 @@ export default function NewExamPage() {
     }
   }
 
+  if (loading) return <PageLoading />
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Create Exam" description="Set up a new examination">
+      <PageHeader title="Edit Exam" description="Update examination details">
         <Button variant="outline" asChild>
           <Link href="/exams">
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -148,7 +179,7 @@ export default function NewExamPage() {
             <div className="flex items-center gap-3 pt-4">
               <Button type="submit" disabled={submitting}>
                 <Save className="mr-2 h-4 w-4" />
-                {submitting ? "Creating..." : "Create Exam"}
+                {submitting ? "Saving..." : "Save Changes"}
               </Button>
               <Button type="button" variant="outline" asChild>
                 <Link href="/exams">Cancel</Link>

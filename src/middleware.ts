@@ -1,24 +1,26 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { auth } from "@/lib/auth";
 
-export default auth((req) => {
+export default function middleware(req: NextRequest) {
   const { nextUrl } = req;
   const host = req.headers.get("host") ?? "";
-  const isLoggedIn = !!req.auth;
 
   const slug = extractTenantSlug(host);
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set("x-tenant-slug", slug);
 
-  if (nextUrl.pathname === "/login" && isLoggedIn) {
+  const sessionToken =
+    req.cookies.get("authjs.session-token")?.value ||
+    req.cookies.get("__Secure-authjs.session-token")?.value;
+
+  if (nextUrl.pathname === "/login" && sessionToken) {
     return NextResponse.redirect(new URL("/dashboard", nextUrl));
   }
 
   return NextResponse.next({
     request: { headers: requestHeaders },
   });
-});
+}
 
 function extractTenantSlug(host: string): string {
   const parts = host.split(".");

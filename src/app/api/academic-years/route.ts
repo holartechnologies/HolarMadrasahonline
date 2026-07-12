@@ -9,7 +9,9 @@ export async function GET() {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const years = await prisma.academicYear.findMany({
+      where: { tenantId },
       orderBy: { gregorianStart: "desc" },
     })
     return Response.json(years)
@@ -26,6 +28,7 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const body = await req.json()
     const { gregorianStart, gregorianEnd, hijriStart, hijriEnd, isCurrent } = body
 
@@ -35,13 +38,14 @@ export async function POST(req: NextRequest) {
 
     if (isCurrent) {
       await prisma.academicYear.updateMany({
-        where: { isCurrent: true },
+        where: { tenantId, isCurrent: true },
         data: { isCurrent: false },
       })
     }
 
     const year = await prisma.academicYear.create({
       data: {
+        tenantId,
         gregorianStart: parseInt(gregorianStart),
         gregorianEnd: parseInt(gregorianEnd),
         hijriStart: parseInt(hijriStart),
@@ -64,6 +68,7 @@ export async function PUT(req: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const { searchParams } = new URL(req.url)
     const id = searchParams.get("id")
     if (!id) {
@@ -75,7 +80,7 @@ export async function PUT(req: NextRequest) {
 
     if (isCurrent) {
       await prisma.academicYear.updateMany({
-        where: { isCurrent: true },
+        where: { tenantId, isCurrent: true },
         data: { isCurrent: false },
       })
     }
@@ -105,13 +110,14 @@ export async function DELETE(req: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const { searchParams } = new URL(req.url)
     const id = searchParams.get("id")
     if (!id) {
       return Response.json({ error: "ID is required" }, { status: 400 })
     }
 
-    await prisma.academicYear.delete({ where: { id } })
+    await prisma.academicYear.delete({ where: { id, tenantId } })
     return Response.json({ success: true })
   } catch (error) {
     console.error("Error deleting academic year:", error)

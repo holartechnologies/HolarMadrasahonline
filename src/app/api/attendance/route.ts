@@ -10,12 +10,13 @@ export async function GET(req: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const { searchParams } = new URL(req.url)
     const date = searchParams.get("date")
     const classId = searchParams.get("classId")
     const studentId = searchParams.get("studentId")
 
-    const where: Record<string, unknown> = {}
+    const where: Record<string, unknown> = { tenantId }
 
     if (date) {
       const startDate = new Date(date)
@@ -60,6 +61,7 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const body = await req.json()
     const { records } = body
 
@@ -80,7 +82,8 @@ export async function POST(req: NextRequest) {
       const data = parsed.data
       const result = await prisma.attendance.upsert({
         where: {
-          studentId_classId_date: {
+          tenantId_studentId_classId_date: {
+            tenantId,
             studentId: data.studentId,
             classId: data.classId,
             date: new Date(data.date),
@@ -92,6 +95,7 @@ export async function POST(req: NextRequest) {
           recordedById: session.user?.id,
         },
         create: {
+          tenantId,
           studentId: data.studentId,
           classId: data.classId,
           date: new Date(data.date),
@@ -117,6 +121,7 @@ export async function PUT(req: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const { searchParams } = new URL(req.url)
     const id = searchParams.get("id")
 
@@ -124,7 +129,7 @@ export async function PUT(req: NextRequest) {
       return Response.json({ error: "Attendance ID is required" }, { status: 400 })
     }
 
-    const existing = await prisma.attendance.findUnique({ where: { id } })
+    const existing = await prisma.attendance.findUnique({ where: { id, tenantId } })
     if (!existing) {
       return Response.json({ error: "Attendance record not found" }, { status: 404 })
     }

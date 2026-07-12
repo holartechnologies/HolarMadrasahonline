@@ -8,6 +8,7 @@ export async function GET() {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const [
       totalStudents,
       totalTeachers,
@@ -22,16 +23,17 @@ export async function GET() {
       recentActivities,
       latestAdmissions,
     ] = await Promise.all([
-      prisma.student.count({ where: { status: "Active" } }),
-      prisma.teacher.count(),
-      prisma.class.count({ where: { status: "Active" } }),
-      prisma.subject.count({ where: { isActive: true } }),
+      prisma.student.count({ where: { tenantId, status: "Active" } }),
+      prisma.teacher.count({ where: { tenantId } }),
+      prisma.class.count({ where: { tenantId, status: "Active" } }),
+      prisma.subject.count({ where: { tenantId, isActive: true } }),
       prisma.payment.aggregate({
+        where: { tenantId },
         _sum: { amountPaid: true },
       }),
       prisma.payment.aggregate({
+        where: { tenantId, balance: { gt: 0 } },
         _sum: { balance: true },
-        where: { balance: { gt: 0 } },
       }),
       (async () => {
         const today = new Date()
@@ -42,12 +44,14 @@ export async function GET() {
         const [present, total] = await Promise.all([
           prisma.attendance.count({
             where: {
+              tenantId,
               date: { gte: today, lt: tomorrow },
               status: "Present",
             },
           }),
           prisma.attendance.count({
             where: {
+              tenantId,
               date: { gte: today, lt: tomorrow },
             },
           }),
@@ -56,6 +60,7 @@ export async function GET() {
         return { present, total }
       })(),
       prisma.class.findMany({
+        where: { tenantId },
         select: {
           name: true,
           _count: { select: { students: true } },
@@ -68,6 +73,7 @@ export async function GET() {
 
         const payments = await prisma.payment.findMany({
           where: {
+            tenantId,
             paymentDate: { gte: sixMonthsAgo },
           },
           select: {
@@ -94,6 +100,7 @@ export async function GET() {
 
         const records = await prisma.attendance.findMany({
           where: {
+            tenantId,
             date: { gte: sixMonthsAgo },
           },
           select: {
@@ -121,6 +128,7 @@ export async function GET() {
         }))
       })(),
       prisma.activityLog.findMany({
+        where: { tenantId },
         include: {
           user: {
             select: {
@@ -134,6 +142,7 @@ export async function GET() {
         take: 10,
       }),
       prisma.student.findMany({
+        where: { tenantId },
         select: {
           id: true,
           firstName: true,

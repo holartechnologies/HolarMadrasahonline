@@ -139,7 +139,7 @@ async function exportPDF(title: string, head: string[][], body: string[][], file
   const autoTable = (await import("jspdf-autotable")).default
   const doc = new jsPDF()
   doc.setFontSize(16); doc.text(title, 14, 20)
-  doc.setFontSize(10); doc.text(`Ihya'us Sunnah Islamic School - Generated ${new Date().toLocaleDateString()}`, 14, 28)
+  doc.setFontSize(10); doc.text(`Holartech MadrasahPro - Generated ${new Date().toLocaleDateString()}`, 14, 28)
   autoTable(doc, { startY: 35, head, body, styles: { fontSize: 8 }, headStyles: { fillColor: [59, 130, 246] } })
   doc.save(filename)
 }

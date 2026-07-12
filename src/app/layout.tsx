@@ -8,8 +8,8 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const amiri = Amiri({ subsets: ["arabic"], weight: ["400", "700"], variable: "--font-amiri" });
 
 export const metadata: Metadata = {
-  title: "Ihya'us Sunnah School Management System",
-  description: "Islamic School Management System for Ihya'us Sunnah",
+  title: "Holartech MadrasahPro Version 1",
+  description: "Holartech MadrasahPro Version 1 - School Management System",
 };
 
 export default function RootLayout({

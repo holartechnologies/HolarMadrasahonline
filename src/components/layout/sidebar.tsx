@@ -55,7 +55,7 @@ export function Sidebar({ className, open, onClose }: SidebarProps) {
   const pathname = usePathname()
   const { data: session } = useSession()
   const userRole = session?.user?.role ?? ""
-  const [schoolName, setSchoolName] = useState("Ihya'us Sunnah")
+  const [schoolName, setSchoolName] = useState("Holartech MadrasahPro")
 
   useEffect(() => {
     fetch("/api/settings").then(async (res) => {

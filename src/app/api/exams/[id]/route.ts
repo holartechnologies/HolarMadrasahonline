@@ -3,9 +3,9 @@ import { prisma } from "@/lib/prisma"
 import { auth } from "@/lib/auth"
 import { calculateGrade } from "@/lib/utils"
 
-async function getMaxScores() {
+async function getMaxScores(tenantId: string) {
   const settings = await prisma.systemSettings.findMany({
-    where: { key: { in: ["exam.test1Max", "exam.test2Max", "exam.assignmentMax", "exam.examinationMax", "grading_scale"] } },
+    where: { tenantId, key: { in: ["exam.test1Max", "exam.test2Max", "exam.assignmentMax", "exam.examinationMax", "grading_scale"] } },
   })
   const map = new Map(settings.map((s) => [s.key, s.value]))
   return {
@@ -27,10 +27,11 @@ export async function GET(
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const { id } = await params
 
     const exam = await prisma.exam.findUnique({
-      where: { id },
+      where: { id, tenantId },
       include: {
         results: {
           include: {
@@ -78,9 +79,10 @@ export async function PUT(
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const { id } = await params
 
-    const existing = await prisma.exam.findUnique({ where: { id } })
+    const existing = await prisma.exam.findUnique({ where: { id, tenantId } })
     if (!existing) {
       return Response.json({ error: "Exam not found" }, { status: 404 })
     }
@@ -88,7 +90,7 @@ export async function PUT(
     const body = await req.json()
 
     if (body.results && Array.isArray(body.results)) {
-      const maxScores = await getMaxScores()
+      const maxScores = await getMaxScores(tenantId)
       const maxTotal = maxScores.test1 + maxScores.test2 + maxScores.assignment + maxScores.examination
       const resultsData = body.results.map(
         (result: {
@@ -110,6 +112,7 @@ export async function PUT(
           const grade = calculateGrade(total, maxTotal, maxScores.gradeScale)
 
           return {
+            tenantId,
             examId: id,
             studentId: result.studentId,
             classId: result.classId,
@@ -128,7 +131,8 @@ export async function PUT(
       for (const result of resultsData) {
         await prisma.examResult.upsert({
           where: {
-            examId_studentId_subjectId: {
+            tenantId_examId_studentId_subjectId: {
+              tenantId,
               examId: result.examId,
               studentId: result.studentId,
               subjectId: result.subjectId,
@@ -140,7 +144,7 @@ export async function PUT(
       }
 
       const allResults = await prisma.examResult.findMany({
-        where: { examId: id },
+        where: { tenantId, examId: id },
         orderBy: [
           { subjectId: "asc" },
           { total: "desc" },
@@ -227,9 +231,10 @@ export async function PATCH(
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const { id } = await params
 
-    const existing = await prisma.exam.findUnique({ where: { id } })
+    const existing = await prisma.exam.findUnique({ where: { id, tenantId } })
     if (!existing) {
       return Response.json({ error: "Exam not found" }, { status: 404 })
     }
@@ -262,9 +267,10 @@ export async function DELETE(
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const { id } = await params
 
-    const existing = await prisma.exam.findUnique({ where: { id } })
+    const existing = await prisma.exam.findUnique({ where: { id, tenantId } })
     if (!existing) {
       return Response.json({ error: "Exam not found" }, { status: 404 })
     }

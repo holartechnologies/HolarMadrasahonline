@@ -10,12 +10,13 @@ export async function GET(req: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const { searchParams } = new URL(req.url)
     const search = searchParams.get("search")
     const classId = searchParams.get("classId")
     const status = searchParams.get("status")
 
-    const where: Record<string, unknown> = {}
+    const where: Record<string, unknown> = { tenantId }
 
     if (classId) where.classId = classId
     if (status) where.status = status
@@ -52,6 +53,7 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const body = await req.json()
     const parsed = studentSchema.safeParse(body)
 
@@ -67,7 +69,7 @@ export async function POST(req: NextRequest) {
     const year = new Date().getFullYear()
     const prefix = `IHYSU/${year}/`
     const lastStudent = await prisma.student.findFirst({
-      where: { admissionNumber: { startsWith: prefix } },
+      where: { tenantId, admissionNumber: { startsWith: prefix } },
       orderBy: { admissionNumber: "desc" },
     })
     let nextNum = 1
@@ -80,6 +82,7 @@ export async function POST(req: NextRequest) {
 
     const student = await prisma.student.create({
       data: {
+        tenantId,
         admissionNumber,
         firstName: data.firstName,
         lastName: data.lastName,
@@ -115,6 +118,7 @@ export async function DELETE(req: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const { searchParams } = new URL(req.url)
     const id = searchParams.get("id")
 
@@ -122,7 +126,7 @@ export async function DELETE(req: NextRequest) {
       return Response.json({ error: "Student ID is required" }, { status: 400 })
     }
 
-    const existing = await prisma.student.findUnique({ where: { id } })
+    const existing = await prisma.student.findUnique({ where: { id, tenantId } })
     if (!existing) {
       return Response.json({ error: "Student not found" }, { status: 404 })
     }

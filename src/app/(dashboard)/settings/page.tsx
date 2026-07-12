@@ -84,10 +84,10 @@ interface AssessmentWeights {
 }
 
 const defaultGeneral: GeneralSettings = {
-  schoolName: "Ihya'us Sunnah Islamic School",
+  schoolName: "Holartech MadrasahPro",
   schoolAddress: "No. 1, Islamic Avenue, Madinah Quarter",
   schoolPhone: "+234-800-SUNNAH",
-  schoolEmail: "info@ihyaahussunah.com",
+  schoolEmail: "info@holartechmadrasahpro.com",
   schoolMotto: "Reviving the Sunnah through Knowledge and Action",
   schoolLogo: "",
 }

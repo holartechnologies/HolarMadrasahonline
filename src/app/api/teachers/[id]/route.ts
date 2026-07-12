@@ -12,10 +12,11 @@ export async function GET(
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const { id } = await params
 
     const teacher = await prisma.teacher.findUnique({
-      where: { id },
+      where: { id, tenantId },
       include: {
         classes: {
           select: { id: true, name: true, code: true },
@@ -51,10 +52,11 @@ export async function PUT(
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const { id } = await params
     const body = await req.json()
 
-    const existing = await prisma.teacher.findUnique({ where: { id } })
+    const existing = await prisma.teacher.findUnique({ where: { id, tenantId } })
     if (!existing) {
       return Response.json({ error: "Teacher not found" }, { status: 404 })
     }
@@ -71,25 +73,26 @@ export async function PUT(
 
     if (classIds) {
       await prisma.class.updateMany({
-        where: { teacherId: id },
+        where: { tenantId, teacherId: id },
         data: { teacherId: null },
       })
       const ids = classIds as string[]
       if (ids.length > 0) {
         await prisma.class.updateMany({
-          where: { id: { in: ids } },
+          where: { tenantId, id: { in: ids } },
           data: { teacherId: id },
         })
       }
     }
 
     if (subjectIds) {
-      await prisma.subjectTeacher.deleteMany({ where: { teacherId: id } })
+      await prisma.subjectTeacher.deleteMany({ where: { tenantId, teacherId: id } })
       if (subjectIds.length > 0) {
         await prisma.subjectTeacher.createMany({
           data: subjectIds.map((subjectId: string) => ({
             subjectId,
             teacherId: id,
+            tenantId,
           })),
         })
       }
@@ -112,9 +115,10 @@ export async function DELETE(
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const { id } = await params
 
-    const existing = await prisma.teacher.findUnique({ where: { id } })
+    const existing = await prisma.teacher.findUnique({ where: { id, tenantId } })
     if (!existing) {
       return Response.json({ error: "Teacher not found" }, { status: 404 })
     }

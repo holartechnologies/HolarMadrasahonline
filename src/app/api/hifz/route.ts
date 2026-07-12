@@ -10,7 +10,9 @@ export async function GET() {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const records = await prisma.hifzRecord.findMany({
+      where: { tenantId },
       include: {
         student: {
           select: {
@@ -41,6 +43,7 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const body = await req.json()
     const parsed = hifzRecordSchema.safeParse(body)
 
@@ -54,9 +57,7 @@ export async function POST(req: NextRequest) {
     const data = parsed.data
 
     const record = await prisma.hifzRecord.upsert({
-      where: {
-        studentId: data.studentId,
-      },
+      where: { tenantId_studentId: { tenantId, studentId: data.studentId } },
       update: {
         classId: data.classId,
         currentJuz: data.currentJuz,
@@ -69,6 +70,7 @@ export async function POST(req: NextRequest) {
         dateUpdated: new Date(),
       },
       create: {
+        tenantId,
         studentId: data.studentId,
         classId: data.classId,
         currentJuz: data.currentJuz,
@@ -108,6 +110,7 @@ export async function PUT(req: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const { searchParams } = new URL(req.url)
     const id = searchParams.get("id")
 
@@ -115,7 +118,7 @@ export async function PUT(req: NextRequest) {
       return Response.json({ error: "Hifz record ID is required" }, { status: 400 })
     }
 
-    const existing = await prisma.hifzRecord.findUnique({ where: { id } })
+    const existing = await prisma.hifzRecord.findUnique({ where: { id, tenantId } })
     if (!existing) {
       return Response.json({ error: "Hifz record not found" }, { status: 404 })
     }

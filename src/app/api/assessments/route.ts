@@ -10,7 +10,9 @@ export async function GET() {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const assessments = await prisma.characterAssessment.findMany({
+      where: { tenantId },
       include: {
         student: {
           select: {
@@ -38,6 +40,7 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const body = await req.json()
     const parsed = characterAssessmentSchema.safeParse(body)
 
@@ -52,7 +55,7 @@ export async function POST(req: NextRequest) {
 
     const assessment = await prisma.characterAssessment.upsert({
       where: {
-        studentId: data.studentId,
+        tenantId_studentId: { tenantId, studentId: data.studentId },
       },
       update: {
         discipline: data.discipline,
@@ -65,6 +68,7 @@ export async function POST(req: NextRequest) {
         assessedById: session.user?.id,
       },
       create: {
+        tenantId,
         studentId: data.studentId,
         discipline: data.discipline,
         punctuality: data.punctuality,

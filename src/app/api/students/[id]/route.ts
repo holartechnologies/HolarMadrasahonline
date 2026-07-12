@@ -13,10 +13,11 @@ export async function GET(
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const { id } = await params
 
     const student = await prisma.student.findUnique({
-      where: { id },
+      where: { id, tenantId },
       include: {
         class: {
           select: { id: true, name: true, code: true },
@@ -67,9 +68,10 @@ export async function PUT(
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const { id } = await params
 
-    const existing = await prisma.student.findUnique({ where: { id } })
+    const existing = await prisma.student.findUnique({ where: { id, tenantId } })
     if (!existing) {
       return Response.json({ error: "Student not found" }, { status: 404 })
     }
@@ -128,9 +130,10 @@ export async function DELETE(
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const { id } = await params
 
-    const existing = await prisma.student.findUnique({ where: { id } })
+    const existing = await prisma.student.findUnique({ where: { id, tenantId } })
     if (!existing) {
       return Response.json({ error: "Student not found" }, { status: 404 })
     }

@@ -11,7 +11,9 @@ export async function GET() {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const users = await prisma.user.findMany({
+      where: { tenantId },
       include: {
         role: {
           select: { id: true, name: true, permissions: true },
@@ -34,6 +36,7 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const body = await req.json()
     const parsed = userSchema.safeParse(body)
 
@@ -46,8 +49,8 @@ export async function POST(req: NextRequest) {
 
     const data = parsed.data
 
-    const existing = await prisma.user.findUnique({
-      where: { username: data.username },
+    const existing = await prisma.user.findFirst({
+      where: { tenantId, username: data.username },
     })
     if (existing) {
       return Response.json({ error: "Username already exists" }, { status: 409 })
@@ -57,6 +60,7 @@ export async function POST(req: NextRequest) {
 
     const user = await prisma.user.create({
       data: {
+        tenantId,
         username: data.username,
         passwordHash,
         fullName: data.fullName,

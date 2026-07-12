@@ -50,12 +50,12 @@ interface UserItem {
 const ROLES = ["Super Admin", "Principal/Mudir", "Teacher", "Accountant"] as const
 
 const initialUsers: UserItem[] = [
-  { id: "1", username: "admin", fullName: "Admin User", email: "admin@ihyaahussunah.com", phone: "+234-800-0001", role: "Super Admin", isActive: true },
-  { id: "2", username: "mudir", fullName: "Dr. Hassan Ibrahim", email: "mudir@ihyaahussunah.com", phone: "+234-800-0002", role: "Principal/Mudir", isActive: true },
-  { id: "3", username: "teacher1", fullName: "Ahmad Abdullah", email: "ahmad@ihyaahussunah.com", phone: "+234-800-0003", role: "Teacher", isActive: true },
-  { id: "4", username: "teacher2", fullName: "Fatima Yusuf", email: "fatima@ihyaahussunah.com", phone: "+234-800-0004", role: "Teacher", isActive: true },
-  { id: "5", username: "accountant", fullName: "Aliyu Bello", email: "aliyu@ihyaahussunah.com", phone: "+234-800-0005", role: "Accountant", isActive: true },
-  { id: "6", username: "teacher3", fullName: "Khadija Mohammed", email: "khadija@ihyaahussunah.com", phone: "+234-800-0006", role: "Teacher", isActive: false },
+  { id: "1", username: "admin", fullName: "Admin User", email: "admin@holartechmadrasahpro.com", phone: "+234-800-0001", role: "Super Admin", isActive: true },
+  { id: "2", username: "mudir", fullName: "Dr. Hassan Ibrahim", email: "mudir@holartechmadrasahpro.com", phone: "+234-800-0002", role: "Principal/Mudir", isActive: true },
+  { id: "3", username: "teacher1", fullName: "Ahmad Abdullah", email: "ahmad@holartechmadrasahpro.com", phone: "+234-800-0003", role: "Teacher", isActive: true },
+  { id: "4", username: "teacher2", fullName: "Fatima Yusuf", email: "fatima@holartechmadrasahpro.com", phone: "+234-800-0004", role: "Teacher", isActive: true },
+  { id: "5", username: "accountant", fullName: "Aliyu Bello", email: "aliyu@holartechmadrasahpro.com", phone: "+234-800-0005", role: "Accountant", isActive: true },
+  { id: "6", username: "teacher3", fullName: "Khadija Mohammed", email: "khadija@holartechmadrasahpro.com", phone: "+234-800-0006", role: "Teacher", isActive: false },
 ]
 
 const emptyForm: Omit<UserItem, "id"> & { password: string } = {

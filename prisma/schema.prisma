@@ -3,42 +3,83 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  logo      String?
+  address   String?
+  phone     String?
+  email     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  roles            Role[]
+  users            User[]
+  students         Student[]
+  teachers         Teacher[]
+  classes          Class[]
+  subjects         Subject[]
+  fees             Fee[]
+  exams            Exam[]
+  academicYears    AcademicYear[]
+  systemSettings   SystemSettings[]
+  activityLogs     ActivityLog[]
+  attendances      Attendance[]
+  examResults      ExamResult[]
+  hifzRecords      HifzRecord[]
+  assessments      CharacterAssessment[]
+  payments         Payment[]
+  subjectClasses   SubjectClass[]
+  subjectTeachers  SubjectTeacher[]
 }
 
 model User {
-  id            String    @id @default(cuid())
-  username      String    @unique
-  passwordHash  String
-  fullName      String
-  email         String?
-  phone         String?
-  role          Role      @relation(fields: [roleId], references: [id])
-  roleId        String
-  isActive      Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id           String    @id @default(cuid())
+  tenantId     String
+  username     String
+  passwordHash String
+  fullName     String
+  email        String?
+  phone        String?
+  role         Role      @relation(fields: [roleId], references: [id])
+  roleId       String
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  activityLogs  ActivityLog[]
-  settings      SystemSettings[]
+  tenant          Organization    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  activityLogs    ActivityLog[]
+  settings        SystemSettings[]
   attendanceRecords Attendance[]
+
+  @@unique([tenantId, username])
 }
 
 model Role {
   id          String   @id @default(cuid())
-  name        String   @unique
+  tenantId    String
+  name        String
   description String?
   permissions String   @default("[]")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  users       User[]
+  tenant Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  users User[]
+
+  @@unique([tenantId, name])
 }
 
 model Student {
   id              String         @id @default(cuid())
-  admissionNumber String         @unique
+  tenantId        String
+  admissionNumber String
   firstName       String
   lastName        String
   otherName       String?
@@ -55,144 +96,172 @@ model Student {
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
-  class           Class?          @relation(fields: [classId], references: [id], onDelete: SetNull)
-  attendances     Attendance[]
-  examResults     ExamResult[]
-  hifzRecords     HifzRecord[]
-  assessments     CharacterAssessment[]
-  payments        Payment[]
+  tenant      Organization         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  class       Class?               @relation(fields: [classId], references: [id], onDelete: SetNull)
+  attendances Attendance[]
+  examResults ExamResult[]
+  hifzRecords HifzRecord[]
+  assessments CharacterAssessment[]
+  payments    Payment[]
+
+  @@unique([tenantId, admissionNumber])
 }
 
 model Teacher {
-  id              String         @id @default(cuid())
-  staffId         String         @unique
-  fullName        String
-  phoneNumber     String
-  email           String?
-  qualification   String?
-  dateEmployed    DateTime       @default(now())
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  id            String         @id @default(cuid())
+  tenantId      String
+  staffId       String
+  fullName      String
+  phoneNumber   String
+  email         String?
+  qualification String?
+  dateEmployed  DateTime       @default(now())
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
-  classes         Class[]
-  subjects        SubjectTeacher[]
+  tenant   Organization    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  classes  Class[]
+  subjects SubjectTeacher[]
+
+  @@unique([tenantId, staffId])
 }
 
 model Class {
-  id              String          @id @default(cuid())
-  name            String          @unique
-  code            String          @unique
-  teacherId       String?
-  status          String          @default("Active")
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  id        String   @id @default(cuid())
+  tenantId  String
+  name      String
+  code      String
+  teacherId String?
+  status    String   @default("Active")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  teacher         Teacher?        @relation(fields: [teacherId], references: [id], onDelete: SetNull)
-  students        Student[]
-  subjects        SubjectClass[]
-  attendances     Attendance[]
-  examResults     ExamResult[]
-  hifzRecords     HifzRecord[]
+  tenant      Organization      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  teacher     Teacher?          @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  students    Student[]
+  subjects    SubjectClass[]
+  attendances Attendance[]
+  examResults ExamResult[]
+  hifzRecords HifzRecord[]
+
+  @@unique([tenantId, name])
+  @@unique([tenantId, code])
 }
 
 model Subject {
-  id              String          @id @default(cuid())
-  name            String          @unique
-  code            String          @unique
-  description     String?
-  isActive        Boolean         @default(true)
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  id          String   @id @default(cuid())
+  tenantId    String
+  name        String
+  code        String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  classes         SubjectClass[]
-  teachers        SubjectTeacher[]
-  examResults     ExamResult[]
+  tenant      Organization      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  classes     SubjectClass[]
+  teachers    SubjectTeacher[]
+  examResults ExamResult[]
+
+  @@unique([tenantId, name])
+  @@unique([tenantId, code])
 }
 
 model SubjectClass {
-  id              String   @id @default(cuid())
-  subjectId       String
-  classId         String
-  createdAt       DateTime @default(now())
+  id        String   @id @default(cuid())
+  tenantId  String
+  subjectId String
+  classId   String
+  createdAt DateTime @default(now())
 
-  subject         Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  class           Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  tenant  Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subject Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  class   Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
 
-  @@unique([subjectId, classId])
+  @@unique([tenantId, subjectId, classId])
 }
 
 model SubjectTeacher {
-  id              String   @id @default(cuid())
-  subjectId       String
-  teacherId       String
-  createdAt       DateTime @default(now())
+  id        String   @id @default(cuid())
+  tenantId  String
+  subjectId String
+  teacherId String
+  createdAt DateTime @default(now())
 
-  subject         Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  teacher         Teacher  @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  tenant  Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  subject Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacher Teacher      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 
-  @@unique([subjectId, teacherId])
+  @@unique([tenantId, subjectId, teacherId])
 }
 
 model Attendance {
-  id              String   @id @default(cuid())
-  studentId       String
-  classId         String
-  date            DateTime
-  status          String   @default("Present")
-  remarks         String?
-  recordedById    String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id           String   @id @default(cuid())
+  tenantId     String
+  studentId    String
+  classId      String
+  date         DateTime
+  status       String   @default("Present")
+  remarks      String?
+  recordedById String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  class           Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
-  recordedBy      User?    @relation(fields: [recordedById], references: [id], onDelete: SetNull)
+  tenant     Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student    Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class      Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  recordedBy User?        @relation(fields: [recordedById], references: [id], onDelete: SetNull)
 
-  @@unique([studentId, classId, date])
+  @@unique([tenantId, studentId, classId, date])
 }
 
 model Exam {
-  id              String         @id @default(cuid())
-  title           String
-  term            String
-  academicYear    String
-  startDate       DateTime
-  endDate         DateTime
-  isPublished     Boolean        @default(false)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  id           String   @id @default(cuid())
+  tenantId     String
+  title        String
+  term         String
+  academicYear String
+  startDate    DateTime
+  endDate      DateTime
+  isPublished  Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  results         ExamResult[]
+  tenant  Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  results ExamResult[]
 }
 
 model ExamResult {
-  id              String   @id @default(cuid())
-  examId          String
-  studentId       String
-  classId         String
-  subjectId       String
-  test1           Float?   @default(0)
-  test2           Float?   @default(0)
-  assignment      Float?   @default(0)
-  examination     Float?   @default(0)
-  total           Float?   @default(0)
-  grade           String?
-  position        Int?
-  remarks         String?
-  isApproved      Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id          String   @id @default(cuid())
+  tenantId    String
+  examId      String
+  studentId   String
+  classId     String
+  subjectId   String
+  test1       Float?   @default(0)
+  test2       Float?   @default(0)
+  assignment  Float?   @default(0)
+  examination Float?   @default(0)
+  total       Float?   @default(0)
+  grade       String?
+  position    Int?
+  remarks     String?
+  isApproved  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  exam            Exam     @relation(fields: [examId], references: [id], onDelete: Cascade)
-  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  class           Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
-  subject         Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  tenant  Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  exam    Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class   Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
-  @@unique([examId, studentId, subjectId])
+  @@unique([tenantId, examId, studentId, subjectId])
 }
 
 model HifzRecord {
   id                  String   @id @default(cuid())
+  tenantId            String
   studentId           String
   classId             String
   currentJuz          Int      @default(1)
@@ -206,92 +275,114 @@ model HifzRecord {
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 
-  student             Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  class               Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  tenant  Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  class   Class        @relation(fields: [classId], references: [id], onDelete: Cascade)
 
-  @@unique([studentId])
+  @@unique([tenantId, studentId])
 }
 
 model CharacterAssessment {
-  id              String   @id @default(cuid())
-  studentId       String
-  discipline      String   @default("Good")
-  punctuality     String   @default("Good")
-  respect         String   @default("Good")
-  akhlaq          String   @default("Good")
-  leadership      String   @default("Good")
-  cleanliness     String   @default("Good")
-  teacherRemarks  String?
-  assessedById    String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String   @id @default(cuid())
+  tenantId       String
+  studentId      String
+  discipline     String   @default("Good")
+  punctuality    String   @default("Good")
+  respect        String   @default("Good")
+  akhlaq         String   @default("Good")
+  leadership     String   @default("Good")
+  cleanliness    String   @default("Good")
+  teacherRemarks String?
+  assessedById   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  tenant Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student Student     @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
-  @@unique([studentId])
+  @@unique([tenantId, studentId])
 }
 
 model Fee {
-  id              String    @id @default(cuid())
-  name            String    @unique
-  amount          Float
-  description     String?
-  isActive        Boolean   @default(true)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  id          String    @id @default(cuid())
+  tenantId    String
+  name        String
+  amount      Float
+  description String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  payments        Payment[]
+  tenant   Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  payments Payment[]
+
+  @@unique([tenantId, name])
 }
 
 model Payment {
-  id              String   @id @default(cuid())
-  studentId       String
-  feeId           String
-  amount          Float
-  amountPaid      Float
-  balance         Float    @default(0)
-  receiptNumber   String   @unique
-  paymentMethod   String   @default("Cash")
-  paymentDate     DateTime @default(now())
-  notes           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id            String   @id @default(cuid())
+  tenantId      String
+  studentId     String
+  feeId         String
+  amount        Float
+  amountPaid    Float
+  balance       Float    @default(0)
+  receiptNumber String
+  paymentMethod String   @default("Cash")
+  paymentDate   DateTime @default(now())
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  student         Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  fee             Fee      @relation(fields: [feeId], references: [id], onDelete: Cascade)
+  tenant  Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  student Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  fee     Fee          @relation(fields: [feeId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, receiptNumber])
 }
 
 model ActivityLog {
-  id              String   @id @default(cuid())
-  userId          String
-  action          String
-  entityType      String?
-  entityId        String?
-  description     String?
-  createdAt       DateTime @default(now())
+  id          String   @id @default(cuid())
+  tenantId    String
+  userId      String
+  action      String
+  entityType  String?
+  entityId    String?
+  description String?
+  createdAt   DateTime @default(now())
 
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tenant Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model SystemSettings {
-  id              String   @id @default(cuid())
-  key             String   @unique
-  value           String
-  description     String?
-  updatedById     String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id          String   @id @default(cuid())
+  tenantId    String
+  key         String
+  value       String
+  description String?
+  updatedById String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  updatedBy       User?    @relation(fields: [updatedById], references: [id])
+  tenant     Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  updatedBy  User?        @relation(fields: [updatedById], references: [id])
+
+  @@unique([tenantId, key])
 }
 
 model AcademicYear {
-  id              String   @id @default(cuid())
-  gregorianStart  Int
-  gregorianEnd    Int
-  hijriStart      Int
-  hijriEnd        Int
-  isCurrent       Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String   @id @default(cuid())
+  tenantId       String
+  gregorianStart Int
+  gregorianEnd   Int
+  hijriStart     Int
+  hijriEnd       Int
+  isCurrent      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant Organization @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, gregorianStart, gregorianEnd])
 }

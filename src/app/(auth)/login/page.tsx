@@ -84,11 +84,11 @@ export default function LoginPage() {
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
           <GraduationCap className="h-8 w-8 text-primary" />
         </div>
-        <CardTitle className="font-amiri text-3xl" dir="rtl">
-          إحياء السنة
+        <CardTitle className="font-amiri text-3xl">
+          Holartech MadrasahPro
         </CardTitle>
         <CardDescription className="text-base font-medium text-foreground">
-          Ihya&apos;us Sunnah School
+          Version 1
         </CardDescription>
         <CardDescription>Sign in to your account to continue</CardDescription>
       </CardHeader>

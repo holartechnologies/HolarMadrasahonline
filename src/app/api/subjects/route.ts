@@ -10,7 +10,9 @@ export async function GET() {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const subjects = await prisma.subject.findMany({
+      where: { tenantId },
       include: {
         classes: {
           include: {
@@ -44,6 +46,7 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const body = await req.json()
     const parsed = subjectSchema.safeParse(body)
 
@@ -58,6 +61,7 @@ export async function POST(req: NextRequest) {
 
     const subject = await prisma.subject.create({
       data: {
+        tenantId,
         name: data.name,
         code: data.code,
         description: data.description || null,

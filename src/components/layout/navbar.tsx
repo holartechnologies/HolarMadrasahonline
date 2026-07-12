@@ -163,7 +163,7 @@ export function Navbar({ className, onMenuToggle }: NavbarProps) {
     localStorage.setItem("darkMode", String(isDark))
   }
 
-  const [schoolName, setSchoolName] = useState("Ihya'us Sunnah")
+  const [schoolName, setSchoolName] = useState("Holartech MadrasahPro")
   const initials = user?.name ? getInitials(user.name) : "U"
 
   useEffect(() => {

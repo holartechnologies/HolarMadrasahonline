@@ -10,7 +10,9 @@ export async function GET() {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const settings = await prisma.systemSettings.findMany({
+      where: { tenantId },
       orderBy: { key: "asc" },
     })
 
@@ -28,6 +30,7 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const body = await req.json()
     const parsed = settingsSchema.safeParse(body)
 
@@ -41,9 +44,10 @@ export async function POST(req: NextRequest) {
     const data = parsed.data
 
     const setting = await prisma.systemSettings.upsert({
-      where: { key: data.key },
+      where: { tenantId_key: { tenantId, key: data.key } },
       update: { value: data.value, description: data.description || null },
       create: {
+        tenantId,
         key: data.key,
         value: data.value,
         description: data.description || null,

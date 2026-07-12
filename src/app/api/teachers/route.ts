@@ -10,7 +10,9 @@ export async function GET() {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const teachers = await prisma.teacher.findMany({
+      where: { tenantId },
       include: {
         classes: {
           select: { id: true, name: true, code: true },
@@ -40,6 +42,7 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const body = await req.json()
     const parsed = teacherSchema.safeParse(body)
 
@@ -53,7 +56,7 @@ export async function POST(req: NextRequest) {
     const data = parsed.data
 
     const lastTeacher = await prisma.teacher.findFirst({
-      where: { staffId: { startsWith: "IHYSU/STF/" } },
+      where: { tenantId, staffId: { startsWith: "IHYSU/STF/" } },
       orderBy: { staffId: "desc" },
     })
     let nextNum = 1
@@ -66,6 +69,7 @@ export async function POST(req: NextRequest) {
 
     const teacher = await prisma.teacher.create({
       data: {
+        tenantId,
         staffId,
         fullName: data.fullName,
         phoneNumber: data.phoneNumber,
@@ -76,6 +80,7 @@ export async function POST(req: NextRequest) {
           ? {
               create: data.subjectIds.map((subjectId: string) => ({
                 subjectId,
+                tenantId,
               })),
             }
           : undefined,
@@ -97,7 +102,7 @@ export async function POST(req: NextRequest) {
     const classIds = data.classIds || []
     if (classIds.length > 0) {
       await prisma.class.updateMany({
-        where: { id: { in: classIds } },
+        where: { tenantId, id: { in: classIds } },
         data: { teacherId: teacher.id },
       })
     }
@@ -116,6 +121,7 @@ export async function DELETE(req: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const { searchParams } = new URL(req.url)
     const id = searchParams.get("id")
 
@@ -123,7 +129,7 @@ export async function DELETE(req: NextRequest) {
       return Response.json({ error: "Teacher ID is required" }, { status: 400 })
     }
 
-    const existing = await prisma.teacher.findUnique({ where: { id } })
+    const existing = await prisma.teacher.findUnique({ where: { id, tenantId } })
     if (!existing) {
       return Response.json({ error: "Teacher not found" }, { status: 404 })
     }

@@ -11,11 +11,12 @@ export async function GET(req: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const { searchParams } = new URL(req.url)
     const studentId = searchParams.get("studentId")
     const feeId = searchParams.get("feeId")
 
-    const where: Record<string, unknown> = {}
+    const where: Record<string, unknown> = { tenantId }
 
     if (studentId) where.studentId = studentId
     if (feeId) where.feeId = feeId
@@ -57,6 +58,7 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const body = await req.json()
     const parsed = paymentSchema.safeParse(body)
 
@@ -70,7 +72,7 @@ export async function POST(req: NextRequest) {
     const data = parsed.data
 
     const fee = await prisma.fee.findUnique({
-      where: { id: data.feeId },
+      where: { id: data.feeId, tenantId },
     })
 
     if (!fee) {
@@ -79,6 +81,7 @@ export async function POST(req: NextRequest) {
 
     const existingPayments = await prisma.payment.aggregate({
       where: {
+        tenantId,
         studentId: data.studentId,
         feeId: data.feeId,
       },
@@ -91,6 +94,7 @@ export async function POST(req: NextRequest) {
 
     const payment = await prisma.payment.create({
       data: {
+        tenantId,
         studentId: data.studentId,
         feeId: data.feeId,
         amount: fee.amount,

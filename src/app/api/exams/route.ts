@@ -4,9 +4,9 @@ import { auth } from "@/lib/auth"
 import { examSchema } from "@/schemas"
 import { calculateGrade } from "@/lib/utils"
 
-async function getMaxScores() {
+async function getMaxScores(tenantId: string) {
   const settings = await prisma.systemSettings.findMany({
-    where: { key: { in: ["exam.test1Max", "exam.test2Max", "exam.assignmentMax", "exam.examinationMax", "grading_scale"] } },
+    where: { tenantId, key: { in: ["exam.test1Max", "exam.test2Max", "exam.assignmentMax", "exam.examinationMax", "grading_scale"] } },
   })
   const map = new Map(settings.map((s) => [s.key, s.value]))
   return {
@@ -25,7 +25,9 @@ export async function GET() {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const exams = await prisma.exam.findMany({
+      where: { tenantId },
       include: {
         _count: {
           select: { results: true },
@@ -48,6 +50,7 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const body = await req.json()
     const parsed = examSchema.safeParse(body)
 
@@ -62,6 +65,7 @@ export async function POST(req: NextRequest) {
 
     const exam = await prisma.exam.create({
       data: {
+        tenantId,
         title: data.title,
         term: data.term,
         academicYear: data.academicYear,
@@ -71,7 +75,7 @@ export async function POST(req: NextRequest) {
     })
 
     if (body.results && Array.isArray(body.results)) {
-      const maxScores = await getMaxScores()
+      const maxScores = await getMaxScores(tenantId)
       const maxTotal = maxScores.test1 + maxScores.test2 + maxScores.assignment + maxScores.examination
       const resultsData = body.results.map(
         (result: {
@@ -91,6 +95,7 @@ export async function POST(req: NextRequest) {
           const grade = calculateGrade(total, maxTotal, maxScores.gradeScale)
 
           return {
+            tenantId,
             examId: exam.id,
             studentId: result.studentId,
             classId: result.classId,

@@ -10,7 +10,9 @@ export async function GET() {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const fees = await prisma.fee.findMany({
+      where: { tenantId },
       include: {
         payments: {
           select: {
@@ -53,6 +55,7 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const body = await req.json()
     const parsed = feeSchema.safeParse(body)
 
@@ -67,6 +70,7 @@ export async function POST(req: NextRequest) {
 
     const fee = await prisma.fee.create({
       data: {
+        tenantId,
         name: data.name,
         amount: data.amount,
         description: data.description || null,

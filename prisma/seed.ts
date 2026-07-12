@@ -3,8 +3,13 @@ import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
-async function main() {
-  console.log("Seeding database...");
+async function seedTenant(
+  tenantId: string,
+  slug: string,
+  name: string,
+  prefix: string
+) {
+  console.log(`\n--- Seeding tenant: ${name} (${slug}) ---`);
 
   // ─── Roles ───────────────────────────────────────────────────────────────
   const rolesData = [
@@ -72,29 +77,52 @@ async function main() {
         "reports:read", "reports:export",
       ]),
     },
+    {
+      name: "Mudeer",
+      description: "School director with full administrative oversight",
+      permissions: JSON.stringify([
+        "users:read", "users:create", "users:update", "users:delete",
+        "roles:read", "roles:create", "roles:update", "roles:delete",
+        "students:read", "students:create", "students:update",
+        "teachers:read", "teachers:create", "teachers:update",
+        "classes:read", "classes:create", "classes:update",
+        "subjects:read", "subjects:create", "subjects:update",
+        "attendance:read", "attendance:create", "attendance:update",
+        "exams:read", "exams:create", "exams:update",
+        "results:read", "results:create", "results:update",
+        "hifz:read", "hifz:create", "hifz:update",
+        "assessments:read", "assessments:create", "assessments:update",
+        "fees:read", "fees:create", "fees:update",
+        "payments:read", "payments:create", "payments:update",
+        "reports:read", "reports:export",
+        "settings:read", "settings:update",
+        "activity:read",
+      ]),
+    },
   ];
 
   const roles: Record<string, string> = {};
   for (const data of rolesData) {
     const role = await prisma.role.upsert({
-      where: { name: data.name },
+      where: { tenantId_name: { tenantId, name: data.name } },
       update: { description: data.description, permissions: data.permissions },
-      create: data,
+      create: { ...data, tenantId },
     });
     roles[data.name] = role.id;
   }
   console.log("  ✓ Roles created");
 
-  // ─── Super Admin User ──────────────────────────────────────────────────
+  // ─── Users ──────────────────────────────────────────────────────────────
   const adminPasswordHash = await bcrypt.hash("admin123", 12);
   await prisma.user.upsert({
-    where: { username: "admin" },
+    where: { tenantId_username: { tenantId, username: "admin" } },
     update: {
       passwordHash: adminPasswordHash,
       fullName: "Super Administrator",
       roleId: roles["Super Admin"],
     },
     create: {
+      tenantId,
       username: "admin",
       passwordHash: adminPasswordHash,
       fullName: "Super Administrator",
@@ -103,27 +131,45 @@ async function main() {
   });
   console.log("  ✓ Admin user created");
 
+  const mudeerPasswordHash = await bcrypt.hash("mudeer123", 12);
+  await prisma.user.upsert({
+    where: { tenantId_username: { tenantId, username: "mudeer" } },
+    update: {
+      passwordHash: mudeerPasswordHash,
+      fullName: "Mudeer (School Director)",
+      roleId: roles["Mudeer"],
+    },
+    create: {
+      tenantId,
+      username: "mudeer",
+      passwordHash: mudeerPasswordHash,
+      fullName: "Mudeer (School Director)",
+      roleId: roles["Mudeer"],
+    },
+  });
+  console.log("  ✓ Mudeer user created");
+
   // ─── Classes ────────────────────────────────────────────────────────────
   const classesData = [
-    { name: "Tahfiz 1", code: "TAH-1" },
-    { name: "Tahfiz 2", code: "TAH-2" },
-    { name: "Tahfiz 3", code: "TAH-3" },
-    { name: "Ibtidaiyyah 1", code: "IBT-1" },
-    { name: "Ibtidaiyyah 2", code: "IBT-2" },
-    { name: "I'dadiyyah 1", code: "IDA-1" },
-    { name: "I'dadiyyah 2", code: "IDA-2" },
-    { name: "I'dadiyyah 3", code: "IDA-3" },
-    { name: "Thanawiyyah 1", code: "THA-1" },
-    { name: "Thanawiyyah 2", code: "THA-2" },
-    { name: "Thanawiyyah 3", code: "THA-3" },
+    { name: "Tahfiz 1", code: `${prefix}-TAH-1` },
+    { name: "Tahfiz 2", code: `${prefix}-TAH-2` },
+    { name: "Tahfiz 3", code: `${prefix}-TAH-3` },
+    { name: "Ibtidaiyyah 1", code: `${prefix}-IBT-1` },
+    { name: "Ibtidaiyyah 2", code: `${prefix}-IBT-2` },
+    { name: "I'dadiyyah 1", code: `${prefix}-IDA-1` },
+    { name: "I'dadiyyah 2", code: `${prefix}-IDA-2` },
+    { name: "I'dadiyyah 3", code: `${prefix}-IDA-3` },
+    { name: "Thanawiyyah 1", code: `${prefix}-THA-1` },
+    { name: "Thanawiyyah 2", code: `${prefix}-THA-2` },
+    { name: "Thanawiyyah 3", code: `${prefix}-THA-3` },
   ];
 
   const classes: Record<string, string> = {};
   for (const data of classesData) {
     const cls = await prisma.class.upsert({
-      where: { code: data.code },
+      where: { tenantId_code: { tenantId, code: data.code } },
       update: { name: data.name },
-      create: data,
+      create: { ...data, tenantId },
     });
     classes[data.code] = cls.id;
   }
@@ -131,33 +177,33 @@ async function main() {
 
   // ─── Subjects ───────────────────────────────────────────────────────────
   const subjectsData = [
-    { name: "Qur'an Memorization (Hifz)", code: "QUR-MEM" },
-    { name: "Tajweed", code: "TAJ" },
-    { name: "Tafsir", code: "TAF" },
-    { name: "Hadith Studies", code: "HAD" },
-    { name: "Mustalah al-Hadith", code: "MUST-HAD" },
-    { name: "Fiqh", code: "FIQH" },
-    { name: "Usul al-Fiqh", code: "USUL-FIQ" },
-    { name: "Aqidah", code: "AQI" },
-    { name: "Sirah", code: "SIR" },
-    { name: "Islamic History", code: "ISL-HIS" },
-    { name: "Akhlaq", code: "AKH" },
-    { name: "Da'wah and Islamic Studies", code: "DAW" },
-    { name: "Arabic Language", code: "ARB-LAN" },
-    { name: "Arabic Grammar (Nahw)", code: "NAHW" },
-    { name: "Arabic Morphology (Sarf)", code: "SARF" },
-    { name: "Arabic Literature (Adab)", code: "ADAB" },
-    { name: "Islamic Inheritance Law (Fara'id)", code: "FAR" },
-    { name: "Comparative Religion", code: "COM-REL" },
-    { name: "Islamic Education and Civic Responsibility", code: "ISL-EDU" },
+    { name: "Qur'an Memorization (Hifz)", code: `${prefix}-QUR-MEM` },
+    { name: "Tajweed", code: `${prefix}-TAJ` },
+    { name: "Tafsir", code: `${prefix}-TAF` },
+    { name: "Hadith Studies", code: `${prefix}-HAD` },
+    { name: "Mustalah al-Hadith", code: `${prefix}-MUST-HAD` },
+    { name: "Fiqh", code: `${prefix}-FIQH` },
+    { name: "Usul al-Fiqh", code: `${prefix}-USUL-FIQ` },
+    { name: "Aqidah", code: `${prefix}-AQI` },
+    { name: "Sirah", code: `${prefix}-SIR` },
+    { name: "Islamic History", code: `${prefix}-ISL-HIS` },
+    { name: "Akhlaq", code: `${prefix}-AKH` },
+    { name: "Da'wah and Islamic Studies", code: `${prefix}-DAW` },
+    { name: "Arabic Language", code: `${prefix}-ARB-LAN` },
+    { name: "Arabic Grammar (Nahw)", code: `${prefix}-NAHW` },
+    { name: "Arabic Morphology (Sarf)", code: `${prefix}-SARF` },
+    { name: "Arabic Literature (Adab)", code: `${prefix}-ADAB` },
+    { name: "Islamic Inheritance Law (Fara'id)", code: `${prefix}-FAR` },
+    { name: "Comparative Religion", code: `${prefix}-COM-REL` },
+    { name: "Islamic Education and Civic Responsibility", code: `${prefix}-ISL-EDU` },
   ];
 
   const subjects: Record<string, string> = {};
   for (const data of subjectsData) {
     const subject = await prisma.subject.upsert({
-      where: { code: data.code },
+      where: { tenantId_code: { tenantId, code: data.code } },
       update: { name: data.name },
-      create: data,
+      create: { ...data, tenantId },
     });
     subjects[data.code] = subject.id;
   }
@@ -174,50 +220,39 @@ async function main() {
   const fees: Record<string, string> = {};
   for (const data of feesData) {
     const fee = await prisma.fee.upsert({
-      where: { name: data.name },
+      where: { tenantId_name: { tenantId, name: data.name } },
       update: { amount: data.amount, description: data.description },
-      create: data,
+      create: { ...data, tenantId },
     });
     fees[data.name] = fee.id;
   }
   console.log("  ✓ Fee structure created");
 
-  // ─── Academic Years (Gregorian + Hijri) ──────────────────────────────────
+  // ─── Academic Years ────────────────────────────────────────────────────
   const academicYearsData = [
-    { gregorianStart: 2022, gregorianEnd: 2023, hijriStart: 1443, hijriEnd: 1444, isCurrent: false },
-    { gregorianStart: 2023, gregorianEnd: 2024, hijriStart: 1444, hijriEnd: 1445, isCurrent: false },
     { gregorianStart: 2024, gregorianEnd: 2025, hijriStart: 1445, hijriEnd: 1446, isCurrent: false },
     { gregorianStart: 2025, gregorianEnd: 2026, hijriStart: 1446, hijriEnd: 1447, isCurrent: true },
     { gregorianStart: 2026, gregorianEnd: 2027, hijriStart: 1447, hijriEnd: 1448, isCurrent: false },
-    { gregorianStart: 2027, gregorianEnd: 2028, hijriStart: 1448, hijriEnd: 1449, isCurrent: false },
-    { gregorianStart: 2028, gregorianEnd: 2029, hijriStart: 1449, hijriEnd: 1450, isCurrent: false },
-    { gregorianStart: 2029, gregorianEnd: 2030, hijriStart: 1450, hijriEnd: 1451, isCurrent: false },
   ];
 
-  const academicYearIds = [];
   for (const data of academicYearsData) {
     const existing = await prisma.academicYear.findFirst({
-      where: { gregorianStart: data.gregorianStart, gregorianEnd: data.gregorianEnd },
+      where: { tenantId, gregorianStart: data.gregorianStart, gregorianEnd: data.gregorianEnd },
     });
     if (existing) {
-      await prisma.academicYear.update({
-        where: { id: existing.id },
-        data,
-      });
-      academicYearIds.push(existing.id);
+      await prisma.academicYear.update({ where: { id: existing.id }, data });
     } else {
-      const year = await prisma.academicYear.create({ data });
-      academicYearIds.push(year.id);
+      await prisma.academicYear.create({ data: { ...data, tenantId } });
     }
   }
   console.log("  ✓ Academic years created");
 
   // ─── System Settings ───────────────────────────────────────────────────
   const settingsData = [
-    { key: "school_name", value: "Ihya'us Sunnah Islamic School" },
+    { key: "school_name", value: name },
     { key: "school_address", value: "123 Islamic Center Road" },
     { key: "school_phone", value: "+234-800-000-0000" },
-    { key: "school_email", value: "info@ihyaahussunah.edu" },
+    { key: "school_email", value: `info@${slug}.com` },
     { key: "school_motto", value: "Reviving the Sunnah through Knowledge and Action" },
     { key: "current_academic_year", value: "2025/2026" },
     { key: "current_term", value: "1st Term" },
@@ -237,38 +272,40 @@ async function main() {
 
   for (const data of settingsData) {
     await prisma.systemSettings.upsert({
-      where: { key: data.key },
+      where: { tenantId_key: { tenantId, key: data.key } },
       update: { value: data.value },
-      create: data,
+      create: { ...data, tenantId },
     });
   }
   console.log("  ✓ System settings created");
 
-  // ─── Teacher Users (Login Accounts) ─────────────────────────────────────
+  // ─── Teacher Users ────────────────────────────────────────────────────
   const teacherPasswordHash = await bcrypt.hash("teacher123", 12);
   const teacherUsersData = [
     {
-      username: "abdullah",
+      username: `abdullah_${slug}`,
       passwordHash: teacherPasswordHash,
       fullName: "Ustadh Abdullah Yusuf",
       roleName: "Teacher",
     },
     {
-      username: "aisha",
+      username: `aisha_${slug}`,
       passwordHash: teacherPasswordHash,
       fullName: "Ustadhah Aisha Muhammad",
       roleName: "Teacher",
     },
   ];
+
   for (const data of teacherUsersData) {
     await prisma.user.upsert({
-      where: { username: data.username },
+      where: { tenantId_username: { tenantId, username: data.username } },
       update: {
         passwordHash: data.passwordHash,
         fullName: data.fullName,
         roleId: roles[data.roleName],
       },
       create: {
+        tenantId,
         username: data.username,
         passwordHash: data.passwordHash,
         fullName: data.fullName,
@@ -278,30 +315,30 @@ async function main() {
   }
   console.log("  ✓ Teacher login accounts created");
 
-  // ─── Teachers (Sample) ──────────────────────────────────────────────────
+  // ─── Teachers (Sample) ────────────────────────────────────────────────
   const teachersData = [
     {
-      staffId: "TCH-001",
+      staffId: `${prefix}-TCH-001`,
       fullName: "Ustadh Abdullah Yusuf",
       phoneNumber: "+234-801-111-1111",
-      email: "abdullah@ihyaahussunah.edu",
+      email: `abdullah@${slug}.com`,
       qualification: "Masters in Islamic Studies",
-      classCode: "TAH-1",
+      classCode: `${prefix}-TAH-1`,
     },
     {
-      staffId: "TCH-002",
+      staffId: `${prefix}-TCH-002`,
       fullName: "Ustadhah Aisha Muhammad",
       phoneNumber: "+234-802-222-2222",
-      email: "aisha@ihyaahussunah.edu",
+      email: `aisha@${slug}.com`,
       qualification: "Bachelor of Arts in Arabic",
-      classCode: "IBT-1",
+      classCode: `${prefix}-IBT-1`,
     },
   ];
 
   const teacherIds: string[] = [];
   for (const data of teachersData) {
     const teacher = await prisma.teacher.upsert({
-      where: { staffId: data.staffId },
+      where: { tenantId_staffId: { tenantId, staffId: data.staffId } },
       update: {
         fullName: data.fullName,
         phoneNumber: data.phoneNumber,
@@ -309,6 +346,7 @@ async function main() {
         qualification: data.qualification,
       },
       create: {
+        tenantId,
         staffId: data.staffId,
         fullName: data.fullName,
         phoneNumber: data.phoneNumber,
@@ -316,7 +354,6 @@ async function main() {
         qualification: data.qualification,
       },
     });
-    // Assign teacher to class
     if (data.classCode && classes[data.classCode]) {
       await prisma.class.update({
         where: { id: classes[data.classCode] },
@@ -329,20 +366,22 @@ async function main() {
 
   // Assign subjects to teachers
   const subjectTeacherPairs = [
-    { staffId: "TCH-001", subjectCodes: ["QUR-MEM", "TAJ", "TAF"] },
-    { staffId: "TCH-002", subjectCodes: ["ARB-LAN", "NAHW", "ADAB"] },
+    { staffId: `${prefix}-TCH-001`, subjectCodes: [`${prefix}-QUR-MEM`, `${prefix}-TAJ`, `${prefix}-TAF`] },
+    { staffId: `${prefix}-TCH-002`, subjectCodes: [`${prefix}-ARB-LAN`, `${prefix}-NAHW`, `${prefix}-ADAB`] },
   ];
 
   for (const pair of subjectTeacherPairs) {
-    const teacher = await prisma.teacher.findUnique({ where: { staffId: pair.staffId } });
+    const teacher = await prisma.teacher.findUnique({
+      where: { tenantId_staffId: { tenantId, staffId: pair.staffId } },
+    });
     if (!teacher) continue;
     for (const code of pair.subjectCodes) {
       const subjectId = subjects[code];
       if (!subjectId) continue;
       await prisma.subjectTeacher.upsert({
-        where: { subjectId_teacherId: { subjectId, teacherId: teacher.id } },
+        where: { tenantId_subjectId_teacherId: { tenantId, subjectId, teacherId: teacher.id } },
         update: {},
-        create: { subjectId, teacherId: teacher.id },
+        create: { tenantId, subjectId, teacherId: teacher.id },
       });
     }
   }
@@ -351,7 +390,7 @@ async function main() {
   // ─── Students (Sample) ─────────────────────────────────────────────────
   const studentsData = [
     {
-      admissionNumber: "STU-001",
+      admissionNumber: `${prefix}-STU-001`,
       firstName: "Ibrahim",
       lastName: "Musa",
       gender: "male",
@@ -359,22 +398,22 @@ async function main() {
       parentName: "Musa Abdullahi",
       parentPhone: "+234-803-333-3331",
       parentEmail: "musa@example.com",
-      address: "15 Kano Road, Kano State",
-      classCode: "TAH-1",
+      address: "15 Kano Road",
+      classCode: `${prefix}-TAH-1`,
     },
     {
-      admissionNumber: "STU-002",
+      admissionNumber: `${prefix}-STU-002`,
       firstName: "Fatima",
       lastName: "Usman",
       gender: "female",
       dateOfBirth: new Date("2013-08-22"),
       parentName: "Usman Bello",
       parentPhone: "+234-803-333-3332",
-      address: "22 Zaria Street, Kaduna State",
-      classCode: "TAH-1",
+      address: "22 Zaria Street",
+      classCode: `${prefix}-TAH-1`,
     },
     {
-      admissionNumber: "STU-003",
+      admissionNumber: `${prefix}-STU-003`,
       firstName: "Ahmad",
       lastName: "Sulaiman",
       gender: "male",
@@ -382,37 +421,37 @@ async function main() {
       parentName: "Sulaiman Ibrahim",
       parentPhone: "+234-803-333-3333",
       parentEmail: "sulaiman@example.com",
-      address: "7 Abuja Lane, FCT Abuja",
-      classCode: "IBT-1",
+      address: "7 Abuja Lane",
+      classCode: `${prefix}-IBT-1`,
     },
     {
-      admissionNumber: "STU-004",
+      admissionNumber: `${prefix}-STU-004`,
       firstName: "Aisha",
       lastName: "Mahmud",
       gender: "female",
       dateOfBirth: new Date("2010-11-03"),
       parentName: "Mahmud Abubakar",
       parentPhone: "+234-803-333-3334",
-      address: "45 Lagos Street, Lagos State",
-      classCode: "IBT-1",
+      address: "45 Lagos Street",
+      classCode: `${prefix}-IBT-1`,
     },
     {
-      admissionNumber: "STU-005",
+      admissionNumber: `${prefix}-STU-005`,
       firstName: "Hassan",
       lastName: "Aliyu",
       gender: "male",
       dateOfBirth: new Date("2014-07-19"),
       parentName: "Aliyu Muhammad",
       parentPhone: "+234-803-333-3335",
-      address: "10 Sokoto Avenue, Sokoto State",
-      classCode: "TAH-2",
+      address: "10 Sokoto Avenue",
+      classCode: `${prefix}-TAH-2`,
     },
   ];
 
   const studentIds: string[] = [];
   for (const data of studentsData) {
     const student = await prisma.student.upsert({
-      where: { admissionNumber: data.admissionNumber },
+      where: { tenantId_admissionNumber: { tenantId, admissionNumber: data.admissionNumber } },
       update: {
         firstName: data.firstName,
         lastName: data.lastName,
@@ -420,6 +459,7 @@ async function main() {
         classId: classes[data.classCode],
       },
       create: {
+        tenantId,
         admissionNumber: data.admissionNumber,
         firstName: data.firstName,
         lastName: data.lastName,
@@ -452,16 +492,18 @@ async function main() {
 
       await prisma.attendance.upsert({
         where: {
-          studentId_classId_date: {
+          tenantId_studentId_classId_date: {
+            tenantId,
             studentId,
-            classId: student.class!.id,
+            classId: student.class.id,
             date,
           },
         },
         update: { status: attendanceStatuses[(i + day) % attendanceStatuses.length] },
         create: {
+          tenantId,
           studentId,
-          classId: student.class!.id,
+          classId: student.class.id,
           date,
           status: attendanceStatuses[(i + day) % attendanceStatuses.length],
         },
@@ -471,37 +513,36 @@ async function main() {
   console.log("  ✓ Sample attendance records created");
 
   // ─── Hifz Records (Sample) ────────────────────────────────────────────
+  const juzProgress = [5, 3, 8, 2, 1];
+  const surahProgress = [2, 1, 5, 1, 1];
+  const remarks = [
+    "Shows good progress. Consistent practice required.",
+    "Needs improvement in makharij. Regular revision recommended.",
+    "Excellent memorization skills. Keep up the good work.",
+    "Making steady progress. Focus on fluency.",
+    "Good start. Practice daily for better retention.",
+  ];
+
   for (let i = 0; i < studentIds.length; i++) {
     const studentId = studentIds[i];
     const student = await prisma.student.findUnique({ where: { id: studentId }, include: { class: true } });
     if (!student?.class) continue;
 
-    const juzProgress = [5, 3, 8, 2, 1];
-    const surahProgress = [2, 1, 5, 1, 1];
-
     await prisma.hifzRecord.upsert({
-      where: { studentId },
+      where: { tenantId_studentId: { tenantId, studentId } },
       update: {
         currentJuz: juzProgress[i],
         currentSurah: surahProgress[i],
         memorizationPercent: Math.round((juzProgress[i] / 30) * 100),
       },
       create: {
+        tenantId,
         studentId,
-        classId: student.class!.id,
+        classId: student.class.id,
         currentJuz: juzProgress[i],
         currentSurah: surahProgress[i],
-        sabak: `Juz ${juzProgress[i]} - New lesson`,
-        sabqi: `Juz ${Math.max(1, juzProgress[i] - 1)} - Revision`,
-        manzil: `Juz ${Math.max(1, juzProgress[i] - 2)} to Juz ${juzProgress[i]} - Overview`,
         memorizationPercent: Math.round((juzProgress[i] / 30) * 100),
-        teacherRemarks: [
-          "Shows good progress. Consistent practice required.",
-          "Needs improvement in makharij. Regular revision recommended.",
-          "Excellent memorization skills. Keep up the good work.",
-          "Making steady progress. Focus on fluency.",
-          "Good start. Practice daily for better retention.",
-        ][i],
+        teacherRemarks: remarks[i],
       },
     });
   }
@@ -515,13 +556,20 @@ async function main() {
     ["Good", "Very Good", "Good", "Very Good", "Fair", "Good"],
     ["Very Good", "Good", "Very Good", "Excellent", "Good", "Very Good"],
   ];
+  const assessmentRemarks = [
+    "A well-behaved student with strong leadership qualities.",
+    "Good character overall. Should improve punctuality.",
+    "Exemplary conduct. A role model for other students.",
+    "Polite and respectful. Encouraged to participate more.",
+    "Good manners and discipline. Consistent performance.",
+  ];
 
   for (let i = 0; i < studentIds.length; i++) {
     const studentId = studentIds[i];
     const vals = assessmentValues[i];
 
     await prisma.characterAssessment.upsert({
-      where: { studentId },
+      where: { tenantId_studentId: { tenantId, studentId } },
       update: {
         discipline: vals[0],
         punctuality: vals[1],
@@ -531,6 +579,7 @@ async function main() {
         cleanliness: vals[5],
       },
       create: {
+        tenantId,
         studentId,
         discipline: vals[0],
         punctuality: vals[1],
@@ -538,13 +587,7 @@ async function main() {
         akhlaq: vals[3],
         leadership: vals[4],
         cleanliness: vals[5],
-        teacherRemarks: [
-          "A well-behaved student with strong leadership qualities.",
-          "Good character overall. Should improve punctuality.",
-          "Exemplary conduct. A role model for other students.",
-          "Polite and respectful. Encouraged to participate more.",
-          "Good manners and discipline. Consistent performance.",
-        ][i],
+        teacherRemarks: assessmentRemarks[i],
       },
     });
   }
@@ -552,26 +595,32 @@ async function main() {
 
   // ─── Payments (Sample) ─────────────────────────────────────────────────
   const paymentSeeds = [
-    { admissionNumber: "STU-001", feeName: "Tuition Fee", amountPaid: 50000, method: "Cash" },
-    { admissionNumber: "STU-001", feeName: "Registration Fee", amountPaid: 10000, method: "Cash" },
-    { admissionNumber: "STU-002", feeName: "Tuition Fee", amountPaid: 25000, method: "Transfer" },
-    { admissionNumber: "STU-003", feeName: "Tuition Fee", amountPaid: 50000, method: "Cash" },
-    { admissionNumber: "STU-003", feeName: "Examination Fee", amountPaid: 15000, method: "Cash" },
-    { admissionNumber: "STU-004", feeName: "Tuition Fee", amountPaid: 50000, method: "Transfer" },
-    { admissionNumber: "STU-005", feeName: "Development Levy", amountPaid: 20000, method: "Cash" },
+    { admissionNumber: `${prefix}-STU-001`, feeName: "Tuition Fee", amountPaid: 50000, method: "Cash" },
+    { admissionNumber: `${prefix}-STU-001`, feeName: "Registration Fee", amountPaid: 10000, method: "Cash" },
+    { admissionNumber: `${prefix}-STU-002`, feeName: "Tuition Fee", amountPaid: 25000, method: "Transfer" },
+    { admissionNumber: `${prefix}-STU-003`, feeName: "Tuition Fee", amountPaid: 50000, method: "Cash" },
+    { admissionNumber: `${prefix}-STU-003`, feeName: "Examination Fee", amountPaid: 15000, method: "Cash" },
+    { admissionNumber: `${prefix}-STU-004`, feeName: "Tuition Fee", amountPaid: 50000, method: "Transfer" },
+    { admissionNumber: `${prefix}-STU-005`, feeName: "Development Levy", amountPaid: 20000, method: "Cash" },
   ];
 
   for (let idx = 0; idx < paymentSeeds.length; idx++) {
     const p = paymentSeeds[idx];
-    const student = await prisma.student.findUnique({ where: { admissionNumber: p.admissionNumber } });
-    const fee = await prisma.fee.findUnique({ where: { name: p.feeName } });
+    const student = await prisma.student.findUnique({
+      where: { tenantId_admissionNumber: { tenantId, admissionNumber: p.admissionNumber } },
+    });
+    const fee = await prisma.fee.findUnique({
+      where: { tenantId_name: { tenantId, name: p.feeName } },
+    });
     if (!student || !fee) continue;
 
-    const receiptNumber = `RCPT-${String(idx + 1).padStart(4, "0")}`;
-    const existingPayment = await prisma.payment.findUnique({ where: { receiptNumber } });
-    if (existingPayment) {
+    const receiptNumber = `${prefix}-RCPT-${String(idx + 1).padStart(4, "0")}`;
+    const existing = await prisma.payment.findUnique({
+      where: { tenantId_receiptNumber: { tenantId, receiptNumber } },
+    });
+    if (existing) {
       await prisma.payment.update({
-        where: { id: existingPayment.id },
+        where: { id: existing.id },
         data: {
           amountPaid: p.amountPaid,
           amount: fee.amount,
@@ -581,6 +630,7 @@ async function main() {
     } else {
       await prisma.payment.create({
         data: {
+          tenantId,
           studentId: student.id,
           feeId: fee.id,
           amount: fee.amount,
@@ -594,8 +644,49 @@ async function main() {
     }
   }
   console.log("  ✓ Sample payments created");
+}
+
+async function main() {
+  console.log("Seeding database for multi-tenant...");
+
+  // Create demo tenant
+  const tenant = await prisma.organization.upsert({
+    where: { slug: "demo" },
+    update: {},
+    create: {
+      name: "Demo Madrasah",
+      slug: "demo",
+      address: "123 Islamic Center Road",
+      phone: "+234-800-000-0000",
+      email: "info@demo.com",
+    },
+  });
+  console.log(`  ✓ Organization: ${tenant.name} (${tenant.slug})`);
+
+  await seedTenant(tenant.id, tenant.slug, tenant.name, "DEMO");
+
+  // Optional: create a second tenant to demonstrate multi-tenancy
+  const tenant2 = await prisma.organization.upsert({
+    where: { slug: "al-furqan" },
+    update: {},
+    create: {
+      name: "Madrasah Al-Furqan",
+      slug: "al-furqan",
+      address: "456 Knowledge Avenue",
+      phone: "+234-800-111-1111",
+      email: "info@alfurqan.com",
+    },
+  });
+  console.log(`\n  ✓ Organization: ${tenant2.name} (${tenant2.slug})`);
+
+  await seedTenant(tenant2.id, tenant2.slug, tenant2.name, "FURQAN");
 
   console.log("\n✅ Database seeding completed successfully!");
+  console.log("\nDefault credentials per tenant:");
+  console.log("  Super Admin: admin / admin123");
+  console.log("  Mudeer:      mudeer / mudeer123");
+  console.log("  Teacher:     abdullah_{slug} / teacher123");
+  console.log("  Teacher:     aisha_{slug} / teacher123");
 }
 
 main()

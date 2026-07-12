@@ -10,7 +10,9 @@ export async function GET() {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const classes = await prisma.class.findMany({
+      where: { tenantId },
       include: {
         teacher: {
           select: { id: true, staffId: true, fullName: true },
@@ -43,6 +45,7 @@ export async function POST(req: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const body = await req.json()
     const parsed = classSchema.safeParse(body)
 
@@ -57,6 +60,7 @@ export async function POST(req: NextRequest) {
 
     const cls = await prisma.class.create({
       data: {
+        tenantId,
         name: data.name,
         code: data.code,
         teacherId: data.teacherId || null,
@@ -86,6 +90,7 @@ export async function PUT(req: NextRequest) {
       return Response.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    const tenantId = session.user.tenantId!
     const { searchParams } = new URL(req.url)
     const id = searchParams.get("id")
 
@@ -93,7 +98,7 @@ export async function PUT(req: NextRequest) {
       return Response.json({ error: "Class ID is required" }, { status: 400 })
     }
 
-    const existing = await prisma.class.findUnique({ where: { id } })
+    const existing = await prisma.class.findUnique({ where: { id, tenantId } })
     if (!existing) {
       return Response.json({ error: "Class not found" }, { status: 404 })
     }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -154,6 +155,12 @@ export default function LoginPage() {
           </Button>
         </form>
 
+        <p className="mt-4 text-center text-sm text-muted-foreground">
+          Don&apos;t have an account?{" "}
+          <Link href="/register" className="text-primary hover:underline">
+            Register your Madrasah
+          </Link>
+        </p>
 
       </CardContent>
     </Card>

@@ -80,12 +80,9 @@ export function Sidebar({ className, open, onClose }: SidebarProps) {
       <div className="flex items-center justify-between border-b border-[#1e3a5f]/10 px-5 py-4 dark:border-white/5">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#1e3a5f] shadow-md dark:bg-[#7ec8e3]">
-            <span className="text-lg font-bold text-white dark:text-[#1e3a5f]" style={{ fontFamily: "'Traditional Arabic', 'Scheherazade New', serif" }}>إ</span>
+            <GraduationCap className="h-5 w-5 text-white dark:text-[#1e3a5f]" />
           </div>
           <div>
-            <h1 className="text-lg font-bold leading-tight text-[#1e3a5f] dark:text-white" style={{ fontFamily: "'Traditional Arabic', 'Scheherazade New', serif" }}>
-              إحياء السنة
-            </h1>
             <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[#7ec8e3]">
               {schoolName}
             </p>

@@ -5,6 +5,17 @@ export const loginSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
+export const registerSchema = z.object({
+  schoolName: z.string().min(2, "School name must be at least 2 characters"),
+  slug: z.string().min(2, "Slug must be at least 2 characters").regex(/^[a-z0-9-]+$/, "Slug must contain only lowercase letters, numbers, and hyphens"),
+  email: z.string().email("Invalid email address"),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  adminUsername: z.string().min(3, "Username must be at least 3 characters").regex(/^[a-zA-Z0-9_]+$/, "Username must contain only letters, numbers, and underscores"),
+  adminPassword: z.string().min(6, "Password must be at least 6 characters"),
+  adminFullName: z.string().min(2, "Full name must be at least 2 characters"),
+});
+
 export const studentSchema = z.object({
   admissionNumber: z.string().optional(),
   firstName: z.string().min(2, "First name must be at least 2 characters"),

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
+const publicPaths = ["/login", "/register"];
+
 export default function middleware(req: NextRequest) {
   const { nextUrl } = req;
   const host = req.headers.get("host") ?? "";
@@ -13,8 +15,12 @@ export default function middleware(req: NextRequest) {
     req.cookies.get("authjs.session-token")?.value ||
     req.cookies.get("__Secure-authjs.session-token")?.value;
 
-  if (nextUrl.pathname === "/login" && sessionToken) {
+  if (publicPaths.includes(nextUrl.pathname) && sessionToken) {
     return NextResponse.redirect(new URL("/dashboard", nextUrl));
+  }
+
+  if (!publicPaths.includes(nextUrl.pathname) && !sessionToken) {
+    return NextResponse.redirect(new URL("/login", nextUrl));
   }
 
   return NextResponse.next({
@@ -33,5 +39,5 @@ function extractTenantSlug(host: string): string {
 }
 
 export const config = {
-  matcher: ["/((?!api/auth|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };

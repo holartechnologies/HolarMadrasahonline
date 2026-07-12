@@ -154,9 +154,7 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          &copy; {new Date().getFullYear()} Ihya&apos;us Sunnah School. All rights reserved.
-        </p>
+
       </CardContent>
     </Card>
   );

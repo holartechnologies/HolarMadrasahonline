@@ -148,9 +148,7 @@ export function Sidebar({ className, open, onClose }: SidebarProps) {
               ))}
             </svg>
           </div>
-          <p className="pb-3 text-center text-[10px] text-[#1e3a5f]/40 dark:text-white/30">
-            &copy; {new Date().getFullYear()} Ihya&apos;us Sunnah
-          </p>
+
         </div>
       )}
     </aside>

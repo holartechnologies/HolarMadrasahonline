@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Sidebar } from "./sidebar"
 import { Navbar } from "./navbar"
 
@@ -10,6 +11,7 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const router = useRouter()
 
   const toggleSidebar = useCallback(() => {
     setSidebarOpen((prev) => !prev)
@@ -18,6 +20,20 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const closeSidebar = useCallback(() => {
     setSidebarOpen(false)
   }, [])
+
+  useEffect(() => {
+    const originalFetch = window.fetch
+    window.fetch = async (...args) => {
+      const response = await originalFetch(...args)
+      if (response.status === 401) {
+        window.location.href = "/login"
+      }
+      return response
+    }
+    return () => {
+      window.fetch = originalFetch
+    }
+  }, [router])
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50 dark:bg-[#0a1628]">

@@ -12,7 +12,7 @@ import { PageLoading } from "@/components/shared/loading"
 import { EmptyState } from "@/components/shared/empty-state"
 import { ConfirmDialog } from "@/components/shared/confirm-dialog"
 import { ColumnDef } from "@tanstack/react-table"
-import { Plus, Eye, Trash2, ToggleLeft, ToggleRight, FileText, Pencil } from "lucide-react"
+import { Plus, Trash2, ToggleLeft, ToggleRight, FileText, Pencil, ClipboardEdit } from "lucide-react"
 
 interface Exam {
   id: string
@@ -129,12 +129,13 @@ export default function ExamsPage() {
         const exam = row.original
         return (
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" asChild>
+            <Button variant="ghost" size="sm" asChild title="Record Scores">
               <Link href={`/exams/${exam.id}`}>
-                <Eye className="h-4 w-4" />
+                <ClipboardEdit className="mr-1 h-4 w-4" />
+                Scores
               </Link>
             </Button>
-            <Button variant="ghost" size="icon" asChild>
+            <Button variant="ghost" size="icon" asChild title="Edit Exam">
               <Link href={`/exams/${exam.id}/edit`}>
                 <Pencil className="h-4 w-4" />
               </Link>

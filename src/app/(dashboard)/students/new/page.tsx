@@ -21,6 +21,7 @@ import {
 import { FormField } from "@/components/shared/form-field"
 import { PageHeader } from "@/components/shared/page-header"
 import { useToast } from "@/components/ui/toaster"
+import { CreatableSelect } from "@/components/shared/creatable-select"
 
 interface ClassOption {
   id: string
@@ -185,21 +186,25 @@ export default function NewStudentPage() {
                   <Input type="date" {...register("dateOfBirth", { valueAsDate: false })} />
                 </FormField>
                 <FormField label="Class" error={errors.classId?.message}>
-                  <Select
+                  <CreatableSelect
+                    options={classes.map(c => ({ id: c.id, name: `${c.name} (${c.code})` }))}
                     value={classId || ""}
-                    onValueChange={(v) => setValue("classId", v || undefined)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select class" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {classes.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name} ({c.code})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    onChange={(v) => setValue("classId", v || undefined)}
+                    placeholder="Select class"
+                    onCreate={async (name) => {
+                      const code = name.toUpperCase().replace(/\s+/g, "-").substring(0, 10)
+                      const res = await fetch("/api/classes", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ name, code, status: "Active" }),
+                      })
+                      if (!res.ok) { toast({ title: "Error", description: "Failed to create class", variant: "destructive" }); return null }
+                      const created = await res.json()
+                      setClasses(prev => [...prev, { id: created.id, name: created.name, code: created.code }])
+                      toast({ title: "Success", description: `Class "${name}" created` })
+                      return { id: created.id, name: created.name }
+                    }}
+                  />
                 </FormField>
               </div>
             </CardContent>

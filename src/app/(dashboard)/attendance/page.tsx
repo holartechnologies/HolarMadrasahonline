@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { CreatableSelect } from "@/components/shared/creatable-select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PageHeader } from "@/components/shared/page-header"
 import { PageLoading } from "@/components/shared/loading"
@@ -187,18 +188,26 @@ export default function AttendancePage() {
           <div className="flex flex-wrap gap-4 items-end">
             <div className="space-y-2">
               <Label>Class</Label>
-              <Select value={classId} onValueChange={setClassId}>
-                <SelectTrigger className="w-56">
-                  <SelectValue placeholder="Select a class" />
-                </SelectTrigger>
-                <SelectContent>
-                  {classes.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <CreatableSelect
+                options={classes.map(c => ({ id: c.id, name: c.name }))}
+                value={classId}
+                onChange={setClassId}
+                placeholder="Select a class"
+                onCreate={async (name) => {
+                  const code = name.toUpperCase().replace(/\s+/g, "-").substring(0, 10)
+                  const res = await fetch("/api/classes", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name, code, status: "Active" }),
+                  })
+                  if (!res.ok) { toast({ title: "Error", description: "Failed to create class", variant: "destructive" }); return null }
+                  const created = await res.json()
+                  setClasses(prev => [...prev, { id: created.id, name: created.name, code: created.code }])
+                  toast({ title: "Success", description: `Class "${name}" created` })
+                  return { id: created.id, name: created.name }
+                }}
+                className="w-56"
+              />
             </div>
             <div className="space-y-2">
               <Label>Date</Label>

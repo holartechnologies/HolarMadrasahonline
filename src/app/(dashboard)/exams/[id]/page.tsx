@@ -6,12 +6,12 @@ import { useToast } from "@/components/ui/toaster"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PageHeader } from "@/components/shared/page-header"
 import { PageLoading } from "@/components/shared/loading"
 import { EmptyState } from "@/components/shared/empty-state"
+import { CreatableSelect } from "@/components/shared/creatable-select"
 import { cn, calculateGrade } from "@/lib/utils"
 import {
   Table,
@@ -354,34 +354,49 @@ export default function ExamResultsPage() {
           <div className="flex flex-wrap gap-4 items-end">
             <div className="space-y-2">
               <Label>Class</Label>
-              <Select value={selectedClassId} onValueChange={setSelectedClassId}>
-                <SelectTrigger className="w-52">
-                  <SelectValue placeholder="All classes" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All Classes</SelectItem>
-                  {classes.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <CreatableSelect
+                options={classes.map(c => ({ id: c.id, name: c.name }))}
+                value={selectedClassId}
+                onChange={setSelectedClassId}
+                placeholder="All classes"
+                onCreate={async (name) => {
+                  const code = name.toUpperCase().replace(/\s+/g, "-").substring(0, 10)
+                  const res = await fetch("/api/classes", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name, code, status: "Active" }),
+                  })
+                  if (!res.ok) { toast({ title: "Error", description: "Failed to create class", variant: "destructive" }); return null }
+                  const created = await res.json()
+                  setClasses(prev => [...prev, { id: created.id, name: created.name }])
+                  toast({ title: "Success", description: `Class "${name}" created` })
+                  return { id: created.id, name: created.name }
+                }}
+                className="w-52"
+              />
             </div>
             <div className="space-y-2">
               <Label>Subject</Label>
-              <Select value={selectedSubjectId} onValueChange={setSelectedSubjectId}>
-                <SelectTrigger className="w-52">
-                  <SelectValue placeholder="Select subject" />
-                </SelectTrigger>
-                <SelectContent>
-                  {subjects.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      {s.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <CreatableSelect
+                options={subjects.map(s => ({ id: s.id, name: s.name }))}
+                value={selectedSubjectId}
+                onChange={setSelectedSubjectId}
+                placeholder="Select subject"
+                onCreate={async (name) => {
+                  const code = name.toUpperCase().replace(/\s+/g, "-").substring(0, 10)
+                  const res = await fetch("/api/subjects", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name, code }),
+                  })
+                  if (!res.ok) { toast({ title: "Error", description: "Failed to create subject", variant: "destructive" }); return null }
+                  const created = await res.json()
+                  setSubjects(prev => [...prev, { id: created.id, name: created.name, code: created.code }])
+                  toast({ title: "Success", description: `Subject "${name}" created` })
+                  return { id: created.id, name: created.name }
+                }}
+                className="w-52"
+              />
             </div>
           </div>
         </CardContent>

@@ -54,7 +54,7 @@ export default function LoginPage() {
       if (result?.error) {
         toast({
           title: "Login Failed",
-          description: "Invalid username or password. Please try again.",
+          description: "Invalid username or password. If this keeps happening, please wait a moment and try again.",
           variant: "destructive",
         });
         return;

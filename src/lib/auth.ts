@@ -1,11 +1,9 @@
 import NextAuth from "next-auth";
-import { PrismaAdapter } from "@auth/prisma-adapter";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: PrismaAdapter(prisma),
   pages: {
     signIn: "/login",
   },
@@ -24,27 +22,32 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
-        const user = await prisma.user.findFirst({
-          where: { username: credentials.username as string },
-          include: { role: true },
-        });
+        try {
+          const user = await prisma.user.findFirst({
+            where: { username: credentials.username as string },
+            include: { role: true },
+          });
 
-        if (!user) return null;
+          if (!user) return null;
 
-        const passwordMatch = await bcrypt.compare(
-          credentials.password as string,
-          user.passwordHash
-        );
+          const passwordMatch = await bcrypt.compare(
+            credentials.password as string,
+            user.passwordHash
+          );
 
-        if (!passwordMatch) return null;
+          if (!passwordMatch) return null;
 
-        return {
-          id: user.id,
-          name: user.fullName,
-          username: user.username,
-          role: user.role.name,
-          tenantId: user.tenantId,
-        };
+          return {
+            id: user.id,
+            name: user.fullName,
+            username: user.username,
+            role: user.role.name,
+            tenantId: user.tenantId,
+          };
+        } catch (error) {
+          console.error("Auth error:", error);
+          return null;
+        }
       },
     }),
   ],
